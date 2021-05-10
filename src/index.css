@@ -1,0 +1,106 @@
+body{
+    font-family: sans-serif;
+    margin: 0;
+}
+.interface{
+    position: absolute;
+    padding: 5px;
+}
+.overrender{
+    background-color: white;
+}
+.topright{
+    right: 0;
+    top: 0;
+
+}
+.topleft{
+    left: 0;
+    top: 0;
+}
+
+.botright{
+    right: 0;
+    bottom: 0;
+
+}
+.botleft{
+    left: 0;
+    bottom: 0;
+}
+.menu{
+    left: 400px;
+    top: 500px;
+    border: solid 1pt #b5b5b5;
+    background-color: #5a5a5a;
+    color: white;
+    font-weight: bolder;
+    padding: 2px;
+    display:none;
+}
+.texteditorpanel{
+    left: 25%;
+    top: 25%;
+    border: solid 1pt #b5b5b5;
+    background-color: #5a5a5a;
+    color: white;
+    font-weight: bolder;
+    padding: 2px;
+    display: none;
+    flex-direction: column;
+    width: 50%;
+    height: 50%;
+    text-align: center;
+    font-size: 15px;
+
+}
+.buttonpanel{
+    padding: 0;
+    display: flex;
+}
+.interfacebutton{
+    margin: 2px;
+    border-radius: 100%;
+    width: 20px;
+    height: 20px;
+    line-height: 22px;
+    font-size: 12px;
+    /*font-family: monospace;*/
+}
+.redbutton{
+    background-color: #6b0909;
+    border: solid 1px #482727;
+}
+.bluebutton{
+    background-color: #09306b;
+    border: solid 1px #213a44;
+}
+.texteditorpanel>textarea{
+    box-sizing: border-box;
+    resize: none;
+    height: 100%;
+    width: 100%;
+}
+.texteditorpanel>.title{
+    height: 26px;
+    line-height: 20px;
+}
+.menu:not(:hover){
+    display:none;
+}
+.menu>.option{
+    background-color: white;
+    color: #737373;
+    font-weight: normal;
+    padding: 2px;
+
+
+}
+.menu>.option:hover{
+    color: white;
+    background: #888888;
+}
+#cameraswitcher:hover{
+    color: white;
+    background: #888888;
+}

@@ -1,0 +1,12 @@
+Simplest Node.js server is just:
+npm install http-server -g
+
+Now you can run a server via the following commands:
+cd MyApp
+http-server
+
+compile:
+npm run build
+
+python pip
+python/venv/bin/pip install scipy scikit-image stl visdom

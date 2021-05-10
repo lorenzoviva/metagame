@@ -1,0 +1,7 @@
+/node_modules/
+/client.js.tmp-browserify*
+/thegame.iml
+/package-lock.json
+/python/
+/cert/
+/.idea/
