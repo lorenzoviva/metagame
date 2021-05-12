@@ -55558,7 +55558,7 @@ var Exported = {
         }
         xmlhttp.onreadystatechange=function()
         {
-            if (xmlhttp.readyState==4 && xmlhttp.status==200)
+            if (xmlhttp.readyState === 4 && xmlhttp.status === 200)
             {
                 let responseText = xmlhttp.responseText;
                 // console.log(responseText)
@@ -55568,7 +55568,7 @@ var Exported = {
         xmlhttp.open("GET", theUrl, false );
         xmlhttp.send(); // NS_ERROR_FAILURE is here
     },
-    httpPost: function(theUrl, callback)
+    httpPost: function(theUrl, payload, callback)
     {
         if (window.XMLHttpRequest)
         {// code for IE7+, Firefox, Chrome, Opera, Safari
@@ -55578,17 +55578,24 @@ var Exported = {
         {// code for IE6, IE5
             var xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
         }
-        xmlhttp.onreadystatechange=function()
-        {
-            if (xmlhttp.readyState==4 && xmlhttp.status==200)
-            {
-                let responseText = xmlhttp.responseText;
-                // console.log(responseText)
-                callback(responseText);
+        // xmlhttp.onreadystatechange=function()
+        // {
+        //     if (xmlhttp.readyState === 4 && xmlhttp.status === 200)
+        //     {
+        //         let responseText = xmlhttp.responseText;
+        //         // console.log(responseText)
+        //         callback(responseText);
+        //     }
+        // }
+        xmlhttp.open("POST", theUrl, false );
+        xmlhttp.setRequestHeader('Content-type', 'text/html')
+        xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+            if(xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                alert(xmlhttp.responseText);
             }
         }
-        xmlhttp.open("POST", theUrl, false );
-        xmlhttp.send(); // NS_ERROR_FAILURE is here
+
+        xmlhttp.send(payload); // NS_ERROR_FAILURE is here
     }
 }
 // export default Exported;
@@ -56234,6 +56241,7 @@ var THREE = require('three');
 const OrbitControls = require('three-orbit-controls')(THREE);
 window.THREE = THREE;
 const interfaces = require('./interfaces.js')
+window.clientserver = require('./clientserver.js');
 const GlobalDeployer = require('./scriptdeployer.js')
 require("./clientutils.js")
 window.deployer = new GlobalDeployer();
@@ -56525,7 +56533,7 @@ function renderSync(){
 }
 
 
-},{"./clientutils.js":221,"./interfaces.js":225,"./scriptdeployer.js":228,"three":219,"three-orbit-controls":218}],227:[function(require,module,exports){
+},{"./clientserver.js":220,"./clientutils.js":221,"./interfaces.js":225,"./scriptdeployer.js":228,"three":219,"three-orbit-controls":218}],227:[function(require,module,exports){
 var GLTFLoader = require("three-gltf-loader");
 require("./custommesh.js");
 var classes = require("./codeobjects.js");
@@ -57323,7 +57331,6 @@ require("./customserialization.js");
 
 module.exports = classes;
 },{"./codeobjects.js":222,"./custommesh.js":223,"./customserialization.js":224,"three-gltf-loader":217}],228:[function(require,module,exports){
-const clientserver = require('./clientserver.js');
 var classes = require('./metaobjects.js');
 
 class GlobalDeployer{
@@ -57684,4 +57691,4 @@ function searchInContext(js, context) {
 
 
 module.exports = GlobalDeployer;
-},{"./clientserver.js":220,"./metaobjects.js":227}]},{},[226]);
+},{"./metaobjects.js":227}]},{},[226]);

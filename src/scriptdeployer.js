@@ -1,4 +1,3 @@
-const clientserver = require('./clientserver.js');
 var classes = require('./metaobjects.js');
 
 class GlobalDeployer{

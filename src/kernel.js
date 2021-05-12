@@ -2,6 +2,7 @@ var THREE = require('three');
 const OrbitControls = require('three-orbit-controls')(THREE);
 window.THREE = THREE;
 const interfaces = require('./interfaces.js')
+window.clientserver = require('./clientserver.js');
 const GlobalDeployer = require('./scriptdeployer.js')
 require("./clientutils.js")
 window.deployer = new GlobalDeployer();
