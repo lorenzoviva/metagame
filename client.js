@@ -57290,7 +57290,7 @@ class Grid3D extends Object3D{
         }
     }
     objectSetup() {
-        // super.objectSetup(); //lol, dont
+        super.objectSetup(); //lol, dont
         this.object.active = false;
         this.object.placing = null;
         this.object.start = null;
