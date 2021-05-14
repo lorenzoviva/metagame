@@ -56952,15 +56952,30 @@ class Code3D extends Object3D{
     editableText(){
         return this.object.node.code;
     }
+
+    // editFromText(newCode){
+    //     let code = this.object;
+    //     let root = code.getRoot();
+    //     var rootObject = root.object3D;
+    //     var overwritten = root.node.code.substr(0,code.node.start) + newCode + root.node.code.substr(code.node.end, root.node.code.length - code.node.end);
+    //     rootObject.setObject(overwritten);
+    //     let editedCodeObject = classes.Code.createCode(newCode, null, code.parent);
+    //     editedCodeObject = classes.Code.cutHeadNode(editedCodeObject);
+    //     this.setObject(editedCodeObject);
+    //     this.mesh.material = this.constructor.getTextMaterial(this.object);
+    //     this.mesh.draw();
+    // }
     editFromText(newCode){
         let code = this.object;
-        let root = code.getRoot();
-        var rootObject = root.object3D;
-        var overwritten = root.node.code.substr(0,code.node.start) + newCode + root.node.code.substr(code.node.end, root.node.code.length - code.node.end);
-        rootObject.setObject(overwritten);
-        let editedCodeObject = classes.Code.createCode(newCode, null, code.parent);
-        editedCodeObject = classes.Code.cutHeadNode(editedCodeObject)
-        this.setObject(editedCodeObject)
+        let parent = code.parent;
+        let editedCodeObject = classes.Code.createCode(newCode, null, parent);
+        if(parent !== null){
+            let parentObject = parent.object3D;
+            var completeNewCode = parent.node.code.substr(0,code.node.start) + newCode + parent.node.code.substr(code.node.end, parent.node.code.length - code.node.end);
+            parentObject.editFromText(completeNewCode);
+            editedCodeObject = classes.Code.cutHeadNode(editedCodeObject);
+        }
+        this.setObject(editedCodeObject);
         this.mesh.material = this.constructor.getTextMaterial(this.object);
         this.mesh.draw();
     }
@@ -57204,15 +57219,17 @@ class Module3D extends Code3D{
     setObject(object) {
         if(object !== null && typeof object === "string" && this.object !== null){
             var reference = this.object.node.reference;
-            var referenced = new classes.Module(object, reference)
-            super.setObject(referenced);
-        }else{
-            super.setObject(object);
+            object = new classes.Module(object, reference)
+        }else if(object !== null && object instanceof classes.Code && this.object !== null){
+            object.node.reference = this.object.node.reference;
         }
+        super.setObject(object);
+
     }
-    // opt_showChild(){
-    //
+    // editFromText(newCode) {
+    //     var model = this.object;
     // }
+
     showChild(){
         deployer.importFromModule(this)
     }
@@ -57290,7 +57307,7 @@ class Grid3D extends Object3D{
         }
     }
     objectSetup() {
-        super.objectSetup(); //lol, dont
+        // super.objectSetup(); //lol, dont
         this.object.active = false;
         this.object.placing = null;
         this.object.start = null;
