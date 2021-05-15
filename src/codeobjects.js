@@ -134,9 +134,17 @@ class Code{
         return dependencies;
     }
     static cutHeadNode(code){
-        code = code.child[0]
-        code.parent = null;
+        if(code.child.length === 1){
+            var parent = code.parent;
+            code = code.child[0]
+            code.parent = parent;
+        }
         return code;
+    }
+    static editCode(newCode, oldCode = null, parent = null){
+        if(oldCode !== null){
+
+        }
     }
     static createCode(code, node = null, parent = null){
         if(node !== null){

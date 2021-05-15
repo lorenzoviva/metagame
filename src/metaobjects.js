@@ -431,11 +431,13 @@ class Code3D extends Object3D{
     // }
     editFromText(newCode){
         let code = this.object;
+        console.log("EDITING CODE: ", this, ". Old code: ", code.node.code, "[" + code.constructor.name + "]", ".New code: ", newCode)
         let parent = code.parent;
         let editedCodeObject = classes.Code.createCode(newCode, null, parent);
         if(parent !== null){
             let parentObject = parent.object3D;
             var completeNewCode = parent.node.code.substr(0,code.node.start) + newCode + parent.node.code.substr(code.node.end, parent.node.code.length - code.node.end);
+            console.log("\tCascading: ", parent, ". Old code: ", parent.node.code, "[" + parent.constructor.name + "]", ".New code: ", completeNewCode)
             parentObject.editFromText(completeNewCode);
             editedCodeObject = classes.Code.cutHeadNode(editedCodeObject);
         }
