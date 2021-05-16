@@ -8,7 +8,7 @@ class GlobalDeployer{
         this.modules = {}
         this.programs = {}
         this.objects = {}
-        this.relations = []
+        this.relations = {}
         this.classes = classes
     }
     import3DJSModuleWithDependencies(url, position= new THREE.Vector3(0,0,0)){
@@ -66,27 +66,30 @@ class GlobalDeployer{
             link.height = height;
             link.color = new classes.Color().randomLight().toString();
             let link3D = new classes.Relation3D(link);
-            object.relations.push(link3D);
-            relation.relations.push(link3D);
-            this.relations.push(link3D)
+            object.relations[link3D.name] = link3D;
+            relation.relations[link3D.name] = link3D;
+            this.relations[link3D.name] = link3D;
             link3D.hide();
         }
     }
     showRelations(object3D){
-        for (var relation_i = 0; relation_i < object3D.relations.length; relation_i++){
-            let relation = object3D.relations[relation_i];
+        let relation_names = Object.getOwnPropertyNames(object3D.relations);
+        for (var relation_i = 0; relation_i < relation_names.length; relation_i++){
+            let relation = object3D.relations[relation_names[relation_i]];
             relation.show();
         }
     }
     hideRelations(object3D){
-        for (var relation_i = 0; relation_i < object3D.relations.length; relation_i++){
-            let relation = object3D.relations[relation_i];
+        let relation_names = Object.getOwnPropertyNames(object3D.relations);
+        for (var relation_i = 0; relation_i < relation_names.length; relation_i++){
+            let relation = object3D.relations[relation_names[relation_i]];
             relation.hide();
         }
     }
     hideAllRelations(){
-        for (var relation_i = 0; relation_i < this.relations.length; relation_i++){
-            let relation = this.relations[relation_i];
+        let relation_names = Object.getOwnPropertyNames(this.relations);
+        for (var relation_i = 0; relation_i < relation_names.length; relation_i++){
+            let relation = this.relations[relation_names[relation_i]];
             relation.hide();
         }
     }

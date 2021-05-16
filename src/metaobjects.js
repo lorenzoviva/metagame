@@ -33,7 +33,7 @@ class Object3D{
         this.identifier = identifier;
         this.metaobject = null;
         this.metaclass = null;
-        this.relations = [];
+        this.relations = {};
         this.childrens = {};
         this.setMesh(mesh);
         this.setObject(object);
@@ -57,7 +57,10 @@ class Object3D{
             delete this.parent.childrens[this.identifier];
         }
         delete deployer.objects[this.name];
-        // delete window[this.name];
+        let relation_names = Object.getOwnPropertyNames(this.relations);
+        for (var r = 0; r < relation_names.length; r++){
+            this.relations[relation_names[r]].destroyer();
+        }
         delete this;
     }
     setName(name){
@@ -315,6 +318,12 @@ class Relation3D extends Object3D{
         let mesh = new THREE.Mesh(tubeGeometry, material);
         super( link, scene, link.identifier, mesh,  link.from.name+"-"+link.to.name,link.from.common_name+"-"+link.to.common_name,{},{},[]);
     }
+    destroyer() {
+        delete deployer.relations[this.name];
+        delete this.object.from.relations[this.name];
+        delete this.object.to.relations[this.name];
+        super.destroyer();
+    }
     updatePosition(){
         //console.log("Updating relation, link:", this.object);
 
@@ -335,6 +344,9 @@ class Relation3D extends Object3D{
         let mesh = new THREE.Mesh(tubeGeometry, material);
         this.setMesh(mesh)
     }
+    objectSetup(){
+
+    }
 }
 class Code3D extends Object3D{
     constructor(code, parent=scene, identifier=""){
@@ -354,6 +366,7 @@ class Code3D extends Object3D{
         this.actions["Move parameters"]  = this.opt_moveParams;
         this.actions["Move required modules"]  = this.opt_moveDependencies;
         this.actions["Edit code"] = this.opt_editText;
+        this.actions["Delete"] = this.opt_destroy;
         delete this.actions["Edit text"]
         this.controls = [];
         // var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),  this.constructor.getTextMaterial(this.object.node))
@@ -368,7 +381,9 @@ class Code3D extends Object3D{
         this.fc_child = [];
         this.fc_param = [];
     }
-    
+    opt_destroy(){
+        return this.destroyer;
+    }
     destroyer() {
         // this.links= []
         // this.sa_links = [];
@@ -440,6 +455,9 @@ class Code3D extends Object3D{
             console.log("\tCascading: ", parent, ". Old code: ", parent.node.code, "[" + parent.constructor.name + "]", ".New code: ", completeNewCode)
             parentObject.editFromText(completeNewCode);
             editedCodeObject = classes.Code.cutHeadNode(editedCodeObject);
+            if(editedCodeObject.child.length > 1){
+                return this.destroyer();
+            }
         }
         this.setObject(editedCodeObject);
         this.mesh.material = this.constructor.getTextMaterial(this.object);
@@ -692,6 +710,8 @@ class Module3D extends Code3D{
         super.setObject(object);
 
     }
+
+
     // editFromText(newCode) {
     //     var model = this.object;
     // }
@@ -762,9 +782,10 @@ class Grid3D extends Object3D{
             let ygrid = this.object.anti_normal.y ? Math.floor(intersects.point.y) - Math.floor(this.object.start.y) + actual_position.y: actual_position.y;
             let zgrid = this.object.anti_normal.z ? Math.floor(intersects.point.z) - Math.floor(this.object.start.z) + actual_position.z: actual_position.z;
             placing.setPositionGrid(new THREE.Vector3(xgrid, ygrid, zgrid))
-            if(placing.relations.length > 0){
-                for(var relation_i = 0; relation_i < placing.relations.length; relation_i++){
-                    placing.relations[relation_i].updatePosition();
+            let relation_names = Object.getOwnPropertyNames(placing.relations);
+            if(relation_names.length > 0){
+                for(var relation_i = 0; relation_i < relation_names.length; relation_i++){
+                    placing.relations[relation_names[relation_i]].updatePosition();
                 }
             }
         }
