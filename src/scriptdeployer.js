@@ -176,6 +176,7 @@ class GlobalDeployer{
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
             var codeblock = new classes.Code3D(codeObjects[instruction_i]);
             codeblock.setPositionGrid(code_position);
+            this.importRelations(code3D, [codeblock],"arc", -5)
         }
     }
     importParametersFromCode(code3D){
@@ -189,6 +190,8 @@ class GlobalDeployer{
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
             var codeblock = new classes.Code3D(codeObjects[instruction_i]);
             codeblock.setPositionGrid(code_position);
+            this.importRelations(code3D, [codeblock],"arc", -5)
+
         }
     }
     importDynamic3DJS(code,  position= new THREE.Vector3(0,0,0)){

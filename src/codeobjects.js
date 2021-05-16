@@ -98,6 +98,17 @@ class Code{
             return this;
         }
     }
+    getFirstObject3DParent(){
+        if(this.parent !== null){
+            if(this.parent.object3D !== undefined){
+                return this.parent;
+            }else{
+                return this.parent.getFirstObject3DParent();
+            }
+        } else{
+            return null;
+        }
+    }
     jsToAST(node, code, parent=null){
         node.code = code.substr(node.start, node.end-node.start)
         this.node = node
