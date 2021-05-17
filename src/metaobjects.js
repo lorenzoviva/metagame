@@ -28,6 +28,7 @@ class Object3D{
         this.actions["Meta class"] = this.opt_getMetaClass;
         this.actions["Edit text"] = this.opt_editText;
         this.actions["Store as variable"] = this.opt_storeAsVar;
+        this.actions["Delete"] = this.opt_destroy;
         this.controls = controls;
         this.parent = parent;
         this.identifier = identifier;
@@ -38,7 +39,22 @@ class Object3D{
         this.setMesh(mesh);
         this.setObject(object);
     }
-
+    redraw(object, parent, identifier){
+        if(object?.getGenericMesh !== undefined){
+            var mesh = object.getGenericMesh(parent, identifier);
+            var g_pos = this.getPositionGrid();
+            var i_pos = this.getPositionInternal();
+            this.parent = parent;
+            this.identifier = identifier;
+            this.setMesh(mesh);
+            this.setObject(object);
+            this.setPositionGrid(g_pos);
+            this.setPositionInternal(i_pos);
+        }else{
+            deployer.setGenericMeshGetter(object, this.constructor.name);
+            return this.redraw(object, parent, identifier);
+        }
+    }
     getCenterPoint(){
         var scale = this.mesh.scale;
         var gridPosition = this.getPositionGrid();
@@ -47,6 +63,9 @@ class Object3D{
             gridPosition.y  + internalPosition.y,//+ scale.y / 2
             gridPosition.z + internalPosition.z);// + scale.z / 2
         return center;
+    }
+    opt_destroy(){
+        return this.destroyer;
     }
     destroyer(){
         //console.log("Destroy: ", this)
@@ -194,7 +213,8 @@ class Object3D{
     }
     editFromText(text){
         if(this.object === null){
-            this.setObject(geval(text))
+            this.redraw(geval(text), this.parent, this.identifier)
+            // this.setObject(geval(text))
         } else {
             var deserializable = text;
             try {
@@ -206,7 +226,9 @@ class Object3D{
             } else {
                 deserialized = deployer.classes.ObjectWrapper.deserialize(deserializable)
             }
-            this.setObject(deserialized)
+            this.redraw(deserialized, this.parent, this.identifier)
+
+            // this.setObject(deserialized)
 
         }
     }
@@ -366,7 +388,6 @@ class Code3D extends Object3D{
         this.actions["Move parameters"]  = this.opt_moveParams;
         this.actions["Move required modules"]  = this.opt_moveDependencies;
         this.actions["Edit code"] = this.opt_editText;
-        this.actions["Delete"] = this.opt_destroy;
         delete this.actions["Edit text"]
         this.controls = [];
         // var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),  this.constructor.getTextMaterial(this.object.node))
@@ -381,9 +402,7 @@ class Code3D extends Object3D{
         this.fc_child = [];
         this.fc_param = [];
     }
-    opt_destroy(){
-        return this.destroyer;
-    }
+
     destroyer() {
         // this.links= []
         // this.sa_links = [];
@@ -402,7 +421,15 @@ class Code3D extends Object3D{
             // scene.remove(this.links[link_i].mesh);
         }
         this.dependency_links = [];
+        if(this.object.fc_child.length > 0){
+            for (var i = 0; i < this.object.fc_child.length; i++){
+                if(this.object.fc_child[i].object3D !== undefined){
+                    this.object.fc_child[i].object3D.destroyer();
+                }
+            }
+        }
         delete deployer.programs[this.name]
+
         super.destroyer();
     }
     setName(name){
@@ -432,18 +459,6 @@ class Code3D extends Object3D{
         return this.object.node.code;
     }
 
-    // editFromText(newCode){
-    //     let code = this.object;
-    //     let root = code.getRoot();
-    //     var rootObject = root.object3D;
-    //     var overwritten = root.node.code.substr(0,code.node.start) + newCode + root.node.code.substr(code.node.end, root.node.code.length - code.node.end);
-    //     rootObject.setObject(overwritten);
-    //     let editedCodeObject = classes.Code.createCode(newCode, null, code.parent);
-    //     editedCodeObject = classes.Code.cutHeadNode(editedCodeObject);
-    //     this.setObject(editedCodeObject);
-    //     this.mesh.material = this.constructor.getTextMaterial(this.object);
-    //     this.mesh.draw();
-    // }
     editFromText(newCode){
         let code = this.object;
         console.log("EDITING CODE: ", this, ". Old code: ", code.node.code, "[" + code.constructor.name + "]", ".New code: ", newCode)
@@ -455,9 +470,9 @@ class Code3D extends Object3D{
             console.log("\tCascading: ", parent, ". Old code: ", parent.node.code, "[" + parent.constructor.name + "]", ".New code: ", completeNewCode)
             parentObject.editFromText(completeNewCode);
             editedCodeObject = classes.Code.cutHeadNode(editedCodeObject);
-            if(editedCodeObject.child.length > 1){
-                return this.destroyer();
-            }
+            // if(editedCodeObject.child.length > 1){
+            return this.destroyer();
+            // }
         }
         this.setObject(editedCodeObject);
         this.mesh.material = this.constructor.getTextMaterial(this.object);
@@ -615,28 +630,28 @@ class Code3D extends Object3D{
         switch (node.type){
             case "VariableDeclaration":
                 // parameters.emissive = 'rgb(125,54,0)';
-                parameters.color = 'rgb(125,54,0)';
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, 'rgb(255,102,0)', "rgb(12,25,96)") } ));
+                parameters.color = classes.VariableDeclaration.primaryColor;
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, classes.Code.backgroundColor, classes.Code.foregroundColor) } ));
                 materials.push(null);
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, 'rgb(12,25,96)', "rgb(255, 102, 0)") } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, classes.Code.foregroundColor, classes.Code.backgroundColor) } ));
                 materials.push(null);
                 materials.push(null);
                 // materials.push(null);//identifier
                 let variableIdentifiers = code.getVariableIdentifiers();
                 // console.log("CODE PARAMS:" ,code,  variableIdentifiers)
                 if(variableIdentifiers.length > 0){
-                    materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(variableIdentifiers.join(", "), 'rgb(0,0,0)', "rgb(0,144,255)", true) } ));
+                    materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(variableIdentifiers.join(", "), classes.Identifier.secondaryColor, classes.Identifier.primaryColor, true) } ));
                 }else {
                     materials.push(new THREE.MeshBasicMaterial(parameters));
-                    // materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(code.fc_params[0].node.code, 'rgb(12,25,96)', "rgb(255, 102, 0)", true) } ));
+                    // materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(code.fc_params[0].node.code, classes.Code.foregroundColor, classes.Code.backgroundColor, true) } ));
                 }
                 return materials;
             case "ExpressionStatement":
                 // parameters.emissive = 'rgb(69,5,5)';
-                parameters.color = 'rgb(69,5,5)';
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, 'rgb(255, 102, 0)', "rgb(69,5,5)") } ));
+                parameters.color = classes.ExpressionStatement.primaryColor;
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, classes.Code.backgroundColor,  classes.ExpressionStatement.primaryColor) } ));
                 materials.push(new THREE.MeshBasicMaterial(parameters));
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, 'rgb(12,25,96)', "rgb(255, 102, 0)") } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, classes.Code.foregroundColor, classes.Code.backgroundColor) } ));
                 materials.push(null);
                 materials.push(null);
                 materials.push(null);
@@ -644,35 +659,35 @@ class Code3D extends Object3D{
             case "ClassDeclaration":
                 var className = code.getDeclaredClassName()
                 // parameters.emissive = 'rgb(69,5,5)';
-                parameters.color = 'rgb(50,5,69)';
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, 'rgb(255, 102, 0)', "rgb(50,5,69)") } ));
+                parameters.color = classes.ClassDeclaration.primaryColor;
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, classes.Code.backgroundColor, classes.ClassDeclaration.primaryColor) } ));
                 materials.push(new THREE.MeshBasicMaterial(parameters));
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, 'rgb(12,25,96)', "rgb(255, 102, 0)") } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, classes.Code.foregroundColor, classes.Code.backgroundColor) } ));
                 materials.push(new THREE.MeshBasicMaterial(parameters));
                 materials.push(null);
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(className, 'rgb(0,0,0)', "rgb(0,144,255)", true) } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(className, classes.Identifier.secondaryColor, classes.Identifier.primaryColor, true) } ));
                 return materials;
             case "FunctionDeclaration":
                 var functionName = code.getDeclaredFunctionName()
                 //console.log("FUNCTION DECLARATION:" ,code, functionName)
                 // parameters.emissive = 'rgb(13,43,10)';
-                parameters.color = 'rgb(13,43,10)';
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, 'rgb(255, 102, 0)', "rgb(13,43,10)") } ));
+                parameters.color = classes.FunctionDeclaration.primaryColor;
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, classes.Code.backgroundColor, classes.FunctionDeclaration.primaryColor) } ));
                 materials.push(new THREE.MeshBasicMaterial(parameters));
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, 'rgb(12,25,96)', "rgb(255, 102, 0)") } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, classes.Code.foregroundColor, classes.Code.backgroundColor) } ));
                 materials.push(null);
                 materials.push(null);
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(functionName, 'rgb(0,0,0)', "rgb(0,144,255)", true) } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(functionName, classes.Identifier.secondaryColor, classes.Identifier.primaryColor, true) } ));
 
                 // materials.push(new THREE.MeshBasicMaterial(parameters));
                 return materials;
             default:
                 // parameters.emissive = 'rgb(0,61,45)';
                 // parameters.color  = 'rgb(0,61,45)';
-                parameters.color  = 'rgb(0,61,45)';
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, 'rgb(255, 102, 0)', "rgb(0,61,45)") } ));
+                parameters.color  = classes.Code.defaultColor;
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.type, classes.Code.backgroundColor, classes.Code.defaultColor) } ));
                 materials.push(new THREE.MeshBasicMaterial(parameters));
-                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, 'rgb(12,25,96)', "rgb(255, 102, 0)") } ));
+                materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(node.code, classes.Code.foregroundColor, classes.Code.backgroundColor) } ));
                 materials.push(new THREE.MeshBasicMaterial(parameters));
                 materials.push(null);
                 materials.push(new THREE.MeshBasicMaterial(parameters));
@@ -744,11 +759,11 @@ class Module3D extends Code3D{
         var node = module.node;
         var materials = [];
         let parameters = { transparent: true, opacity: 0.8, emissive: 'rgb(12,96,93)', color: "rgb(12,96,93)", side: THREE.DoubleSide};
-        materials.push(new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.8, side: THREE.DoubleSide, map: Object3D.getTextTexture("MODULE", 'rgb(12,96,93)', "rgb(255, 102, 0)") } ));
+        materials.push(new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.8, side: THREE.DoubleSide, map: Object3D.getTextTexture("MODULE", 'rgb(12,96,93)', classes.Code.backgroundColor) } ));
         materials.push(null);
         materials.push(null);
         materials.push(new THREE.MeshLambertMaterial(parameters));
-        materials.push(new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.8, side: THREE.DoubleSide, map: Object3D.getTextTexture(node.reference, 'rgb(255, 102, 0)', "rgb(39, 66, 21)") } ));
+        materials.push(new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.8, side: THREE.DoubleSide, map: Object3D.getTextTexture(node.reference, classes.Code.backgroundColor, "rgb(39, 66, 21)") } ));
         materials.push(null);
 
         return materials;

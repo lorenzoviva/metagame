@@ -4,6 +4,7 @@ const classFields = require('acorn-class-fields');
 
 var classes = {}
 class Code{
+
     constructor(code, node=null, parent=null) {
         var text_code = "";
         if(typeof code === "string"){
@@ -34,6 +35,7 @@ class Code{
         }
 
     }
+
     staticAnalisys(){
         this.sa_identifiers = {}
         for(var child_i = 0; child_i < this.child.length; child_i++){
@@ -154,7 +156,20 @@ class Code{
     }
     static editCode(newCode, oldCode = null, parent = null){
         if(oldCode !== null){
-
+            if(oldCode.node.code === newCode){
+                return oldCode;
+            }else{
+                let newCodeObject = classes.Code.createCode(newCode, null, parent);
+                for(var instruction_i = 0; instruction_i < oldCode.fc_child.length; instruction_i++){
+                    var old_child = oldCode.fc_child[instruction_i];
+                    for(var new_instruction_i = 0; new_instruction_i < newCodeObject.fc_child.length; new_instruction_i++){
+                        let new_child = newCodeObject.fc_child[new_instruction_i];
+                        if(new_child.node.code === old_child.node.code){
+                            oldCode.fc_child[instruction_i] = newCodeObject.fc_child[new_instruction_i];
+                        }
+                    }
+                }
+            }
         }
     }
     static createCode(code, node = null, parent = null){
@@ -168,7 +183,19 @@ class Code{
 
 
 }
+class Identifier extends Code {
+    static primaryColor = 'rgb(0,144,255)';
+    static secondaryColor = 'rgb(0,0,0)';
+
+
+    constructor(code, node = null, parent = null) {
+        super(code, node, parent);
+    }
+}
+classes.Identifier = Identifier;
 class VariableDeclaration extends Code {
+    static primaryColor = 'rgb(125,54,0)';
+
     constructor(code, node = null, parent = null) {
         super(code, node, parent);
     }
@@ -185,12 +212,15 @@ class VariableDeclaration extends Code {
 }
 classes.VariableDeclaration = VariableDeclaration
 class ExpressionStatement extends Code{
+
+    static primaryColor = 'rgb(69,5,5)';
     constructor(code, node = null, parent = null) {
         super(code, node, parent);
     }
 }
 classes.ExpressionStatement = ExpressionStatement
 class ClassDeclaration extends Code{
+    static primaryColor = 'rgb(50,5,69)';
     constructor(code, node = null, parent = null) {
         super(code, node, parent);
     }
@@ -200,6 +230,7 @@ class ClassDeclaration extends Code{
 }
 classes.ClassDeclaration = ClassDeclaration
 class FunctionDeclaration extends Code{
+    static primaryColor = 'rgb(13,43,10)'
     constructor(code, node = null, parent = null) {
         super(code, node, parent);
     }
@@ -210,6 +241,9 @@ class FunctionDeclaration extends Code{
 classes.FunctionDeclaration = FunctionDeclaration
 
 classes.Code = Code;
+classes.Code.backgroundColor ='rgb(255,102,0)';
+classes.Code.foregroundColor = 'rgb(12,25,96)';
+classes.Code.defaultColor = 'rgb(0,61,45)';
 class Module extends Code{
     constructor(code, reference) {
         super(code);
