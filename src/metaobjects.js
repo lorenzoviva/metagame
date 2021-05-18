@@ -823,21 +823,19 @@ class Grid3D extends Object3D{
         }
     }
 }
-// class Grid3D extends Object3D{
-//     constructor(object={width: 40, height: 40, orientation: "xz"}) {
-//         super();
-//         this.setName("Grid")
-//         this.common_name = "Grid"
-//         var gridPlane = new THREE.GridHelper(object.width,object.width);
-//         this.setMesh(gridPlane);
-//         this.setObject(object);
-//         gridPlane.updateMatrixWorld();
-//     }
-//     objectSetup() {
-//         // super.objectSetup(); //lol, dont
-//     }
-// }
+class Null3D extends Object3D{
 
+    constructor(object=null, parent = null, identifier = "null") {
+        var color = new classes.Color(160,20,20);
+        var textColor = new classes.Color(255,255,255);
+        let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(identifier,textColor, color, true) });
+        let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture("null",textColor , color.darker(0.1), false, true) });
+        let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(Null3D.name ,textColor , color.lighter(0.2), true) } );
+        var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
+        super(object, parent, identifier, mesh);
+    }
+}
+classes.Null3D = Null3D;
 classes.Code3D = Code3D;
 classes.Function3D = Function3D;
 classes.Module3D = Module3D;

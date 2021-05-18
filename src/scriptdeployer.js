@@ -269,9 +269,10 @@ class GlobalDeployer{
                 if(objectType === classes.Object3D.name){
                     let color = new classes.Color().randomLight();
                     let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':identifier),"rgb(0,0,0)", color, true) });
-                    let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':object.toString()),"rgb(0,0,0)" , color.darker(0.1), false, true) });
+                    let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':(object.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(object).serialize()):JSON.stringify(object.serialize()))),"rgb(0,0,0)" , color.darker(0.1), false, true) });
                     let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType ,"rgb(0,0,0)" , color.lighter(0.2), true) } );
                     var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
+                    // console.log("constructing: ",objectType, object, parent, identifier, mesh);
                     object3D = new classes[objectType](object, parent, identifier, mesh, objectType, objectType,{},{},[]);
                     //    console.log("constructing: ",objectType, object3D);
                 }else{
@@ -290,7 +291,7 @@ class GlobalDeployer{
                 // realObject.setObject(object)
             } catch (e) {
                 if(e instanceof TypeError){
-                    console.log("Creating constructor for class: " + objectType+ " parent:",  parent, " object: " , object);
+                    // console.log("Creating constructor for class: " + objectType+ " parent:",  parent, " object: " , object , " error: ", e);
                     var depth = 0;
                     var node = parent;
                     while (node !== scene){
@@ -300,7 +301,7 @@ class GlobalDeployer{
                     deployer.setGenericMeshGetter(object, objectType);
                     let C = geval("class " + objectType + " extends deployer.classes.Object3D{\n" +
                                 "   constructor(object, parent, identifier){\n" +
-                                "       super(object, parent, identifier, object.getGenericMesh(object, parent, identifier), \""+objectType+"\", \"" + objectType +"\", {},{},[]);\n" +
+                                "       super(object, parent, identifier, object.getGenericMesh(parent, identifier), \""+objectType+"\", \"" + objectType +"\", {},{},[]);\n" +
                                 "    }\n" +
                                 "}; "+ objectType);
 
@@ -323,7 +324,7 @@ class GlobalDeployer{
         let color = new classes.Color().randomLight();
         object.constructor.prototype.getGenericMesh = function getGenericMesh(parent, identifier){
             let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':identifier),"rgb(0,0,0)" , color, true) });
-            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':this.toString()), "rgb(0,0,0)" , color.darker(0.1), false, true) });
+            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':(this.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(this).serialize()):JSON.stringify(this.serialize()))), "rgb(0,0,0)" , color.darker(0.1), false, true) });
             let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType,"rgb(0,0,0)" , color.lighter(0.2), true) } );
             var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material])
             return mesh;
