@@ -222,7 +222,7 @@ class Object3D{
             } catch (e) {}
             var deserialized = null;
             if (deserializable.type && deployer.classes[deserializable.type] && deployer.classes[deserializable.type].deserialize) {
-                deserialized = deployer.classes[deserializable.type].deserialize(text);
+                deserialized = deployer.classes[deserializable.type].deserialize(deserializable);
             } else {
                 deserialized = deployer.classes.ObjectWrapper.deserialize(deserializable)
             }
@@ -835,7 +835,21 @@ class Null3D extends Object3D{
         super(object, parent, identifier, mesh);
     }
 }
+class Undefined3D extends Object3D{
+
+    constructor(object=undefined, parent = undefined, identifier = "undefined") {
+        var color = new classes.Color(200,100,100);
+        var textColor = new classes.Color(255,255,255);
+        let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(identifier,textColor, color, true) });
+        let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture("undefined",textColor , color.darker(0.1), false, true) });
+        let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(Undefined3D.name ,textColor , color.lighter(0.2), true) } );
+        var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
+        super(object, parent, identifier, mesh);
+    }
+}
 classes.Null3D = Null3D;
+classes.Undefined3D = Undefined3D;
+
 classes.Code3D = Code3D;
 classes.Function3D = Function3D;
 classes.Module3D = Module3D;

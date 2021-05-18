@@ -81,9 +81,9 @@ function showTextEditor(realObject) {
     var buttonPanel = document.createElement("div");
     buttonPanel.className = "interface topright buttonpanel"
     buttonPanel.appendChild(createButton("bluebutton", "\uD83D\uDCBE", function () {
-        let newCode = document.getElementById("texteditor").value;
+        let newtext = document.getElementById("texteditor").value;
         // console.log("Save code:", newCode);
-        realObject.editFromText(newCode);
+        realObject.editFromText(newtext);
         return false;
     }));
     buttonPanel.appendChild(createButton("redbutton", "\u2718", function () {
