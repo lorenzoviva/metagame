@@ -113,7 +113,11 @@ class Object3D{
         if(this.mesh) this.meshSetup();
     }
     meshDestroy(){
-        scene.remove(this.mesh);
+        if(this.parent && this.parent !== scene){
+            this.parent.mesh.remove(this.mesh);
+        }else{
+            scene.remove(this.mesh);
+        }
     }
     meshSetup(){
         this.mesh.userData.object3D = this;
@@ -246,6 +250,40 @@ class Object3D{
     userMove(){
         deployer.grid.object.active = true;
         deployer.grid.object.placing = this;
+    }
+    move(grid, intersect){
+        //console.log("moving: ", this)
+        var actual_position =  this.getPositionGrid();
+        let xgrid = grid.anti_normal.x ? Math.floor(intersect.point.x) - Math.floor(grid.start.x) + actual_position.x: actual_position.x;
+        let ygrid = grid.anti_normal.y ? Math.floor(intersect.point.y) - Math.floor(grid.start.y) + actual_position.y: actual_position.y;
+        let zgrid = grid.anti_normal.z ? Math.floor(intersect.point.z) - Math.floor(grid.start.z) + actual_position.z: actual_position.z;
+        this.setPositionGrid(new THREE.Vector3(xgrid, ygrid, zgrid))
+        let relation_names = Object.getOwnPropertyNames(this.relations);
+        if(relation_names.length > 0){
+            for(var relation_i = 0; relation_i < relation_names.length; relation_i++){
+                this.relations[relation_names[relation_i]].updatePosition();
+            }
+        }
+        this.onMove();
+    }
+    onMove(){
+        if(this.parent !== null && this.parent !== scene && this.parent.getPositionGrid() !== this.getPositionGrid()){
+            this.parent.onChildrenMoveOut(this.identifier);
+            this.redraw(this.object, scene, this.identifier);
+            console.log("Redraw: ", this, this.parent.constructor.name, Object3D.constructor.name)
+            var scale = this.mesh.scale;
+            var position = this.getPositionInternal();
+            this.setPositionInternal(new THREE.Vector3(scale.x/2,scale.y/2,scale.z/2))
+            this.setPositionGrid(new THREE.Vector3(Math.floor(position.x),Math.floor(position.y),Math.floor(position.z)))
+        }else if((this.parent === null ||  this.parent === scene) && deployer.getObjectsAtPosition(this.getPositionGrid()).length > 1){
+            // To do
+        }
+    }
+    onChildrenMoveOut(identifier){
+        if(this.object.constructor === Object){
+            delete this.object[identifier]
+            this.redraw(this.object, this.parent, this.identifier);
+        }
     }
     opt_showInConsole(){
         return this.showInConsole;
@@ -410,7 +448,9 @@ class Code3D extends Object3D{
         this.fc_child = [];
         this.fc_param = [];
     }
+    onMove() {
 
+    }
     destroyer() {
         // this.links= []
         // this.sa_links = [];
@@ -789,6 +829,21 @@ class Grid3D extends Object3D{
         gridPlane.updateMatrixWorld();
         this.actions = {} //prevent from moving the grid
     }
+    onMouseMove(raycaster){
+        if(this.object.active){
+            const intersects = raycaster.intersectObjects( [this.mesh.plane] );
+            for ( let i = 0; i < intersects.length; i ++ ) {
+                this.moveObject(intersects[i])
+            }
+        }
+    }
+    onLeftClick(){
+        if (this.object.active){
+            this.object.placing = null;
+            this.object.active = false;
+            this.object.start = null;
+        }
+    }
     moveObject(intersects, placing=this.object.placing){
 
         if(placing.constructor.name === Array.name){
@@ -799,18 +854,7 @@ class Grid3D extends Object3D{
             return;
         }
         if(this.object.start !== null){
-            //console.log("object: ", placing)
-            var actual_position =  placing.getPositionGrid();
-            let xgrid = this.object.anti_normal.x ? Math.floor(intersects.point.x) - Math.floor(this.object.start.x) + actual_position.x: actual_position.x;
-            let ygrid = this.object.anti_normal.y ? Math.floor(intersects.point.y) - Math.floor(this.object.start.y) + actual_position.y: actual_position.y;
-            let zgrid = this.object.anti_normal.z ? Math.floor(intersects.point.z) - Math.floor(this.object.start.z) + actual_position.z: actual_position.z;
-            placing.setPositionGrid(new THREE.Vector3(xgrid, ygrid, zgrid))
-            let relation_names = Object.getOwnPropertyNames(placing.relations);
-            if(relation_names.length > 0){
-                for(var relation_i = 0; relation_i < relation_names.length; relation_i++){
-                    placing.relations[relation_names[relation_i]].updatePosition();
-                }
-            }
+            placing.move(this.object, intersects);
         }
         if(placing === this.object.placing){
             this.object.start = intersects.point;

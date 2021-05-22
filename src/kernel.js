@@ -19,55 +19,22 @@ THREE.Vector3.prototype.getRotated = function(v){
     return res;
 }
 
-
-
-const raycaster = new THREE.Raycaster()
-const mouse = {polar: new THREE.Vector2(), cartesian: new THREE.Vector2(), event:"none"};
-var last_frame_time = new Date();
 var maxFPS = 60;
+var last_frame_time = new Date();
 var game_loop_timeout = null;
 
-function onMouseMove( event ) {
-    mouse.cartesian.x = event.clientX;
-    mouse.cartesian.y = event.clientY;
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.polar.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.polar.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    mouse.event = 'move';
-    interfaces.interfaceMouseMove(mouse);
 
 
-}
-function onClick( event ) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.polar.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.polar.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    mouse.cartesian.x = event.clientX;
-    mouse.cartesian.y = event.clientY;
-    if(event.button === 0){
-        mouse.event = 'downright';
-
-    }else{
-        mouse.event = 'downleft';
-    }
-    return false;
-}
-
-window.addEventListener( 'mousemove', onMouseMove, false );
-window.addEventListener( 'mousedown', onClick, false );
+window.addEventListener( 'mousemove', interfaces.onMouseMove, false );
+window.addEventListener( 'mousedown', interfaces.onClick, false );
 window.addEventListener( 'resize', onWindowResize, false );
 
 init();
 
 function onWindowResize(){
-
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-
     renderer.setSize( window.innerWidth, window.innerHeight );
-
 }
 
 window.swapCamera = function swapCamera(){
@@ -199,80 +166,7 @@ function init() {
 
 
 function render() {
-    if(scene === undefined) return;
-    // update the picking ray with the camera and mouse position
-    raycaster.setFromCamera( mouse.polar, window.camera );
-
-    // calculate objects intersecting the picking ray
-    // console.log("render:  ", mouse.polar)
-    var all_meshes = [];
-    var new_meshes = scene.children.filter(function (element) {
-        return  deployer.grid === undefined || element !== deployer.grid.mesh;
-    });
-    while (new_meshes.length > 0){
-        var childs = [];
-        all_meshes.push(...new_meshes);
-        for (var mesh_index = 0; mesh_index < new_meshes.length; mesh_index++){
-            if(new_meshes[mesh_index] !== undefined && new_meshes[mesh_index].children !== undefined){
-                childs.push(...new_meshes[mesh_index].children);
-            }
-        }
-        new_meshes = childs;
-    }
-    // console.log("CHECKING INTERCEPT ON: ", all_meshes)
-    if(deployer.grid && deployer.grid.object.active){
-        const intersects2 = raycaster.intersectObjects( [deployer.grid.mesh.plane] );
-        for ( let i = 0; i < intersects2.length; i ++ ) {
-            deployer.grid.moveObject(intersects2[i])
-            if(mouse.event === 'downleft') {
-                deployer.grid.object.placing = null;
-                deployer.grid.object.active = false;
-                deployer.grid.object.start = null;
-            }
-        }
-    }
-    const intersects = raycaster.intersectObjects( all_meshes );
-    let object3DList = [];
-    for ( let i = 0; i < intersects.length; i ++ ) {
-        // intersects[ i ].object.material.color.set( 0xff0000 );
-        let intersectedObject = intersects[i].object;
-        if (intersectedObject.userData.object3D !== undefined) {
-            let items = intersectedObject.userData.object3D;
-            if (!object3DList.includes(items)){
-                object3DList.push(items);
-            }
-        }else if(intersectedObject.parent !== scene && intersectedObject.parent.userData.object3D !== undefined){
-            let items = intersectedObject.parent.userData.object3D;
-            if (!object3DList.includes(items)){
-                object3DList.push(items);
-            }
-        }
-        // console.log("INTERCEPTING: ",i , intersectedObject)
-
-    }
-    deployer.hideAllRelations();
-
-    if ( object3DList.length > 0){
-        var nameList = "";
-        for (var i = 0; i < object3DList.length; i++){
-            nameList += object3DList[i].common_name + " > "
-        }
-        nameList = nameList.substr(0, (nameList.length - " > ".length));
-        // if(nameList.length > 40){
-        //     nameList= nameList.substr(0, 40) + "...";
-        // }
-        interfaces.setInterfaceText("contextviewer",nameList)
-
-        deployer.showRelations(object3DList[0]);
-        if(interfaces.allInterfacesClosed() && (deployer.grid === undefined || deployer.grid.object.active === false)){
-            if(mouse.event === 'downleft'){
-                var options = object3DList[0].actions;
-                interfaces.showMenu(mouse, object3DList[0], options)
-            }
-        }
-    }
-
-
+    interfaces.onRender();
     var new_time = new Date()
     let fps = 1000 / (new_time.getTime() - last_frame_time.getTime());
     if(fps > maxFPS){

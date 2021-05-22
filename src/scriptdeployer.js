@@ -363,7 +363,13 @@ class GlobalDeployer{
             return this.importDynamic3DJS(class_definition, position);
         }
     }
-
+    getObjectsAtPosition(position){
+        for (var obj_i = 0; obj_i < this.objects.length; obj_i++){
+            if (this.objects[obj_i].getPositionGrid() === position){
+                return this.objects[obj_i];
+            }
+        }
+    }
 
 }
 function searchInContext(js, context) {
