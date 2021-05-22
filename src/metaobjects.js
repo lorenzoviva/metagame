@@ -275,8 +275,6 @@ class Object3D{
             var position = this.getPositionInternal();
             this.setPositionInternal(new THREE.Vector3(scale.x/2,scale.y/2,scale.z/2))
             this.setPositionGrid(new THREE.Vector3(Math.floor(position.x),Math.floor(position.y),Math.floor(position.z)))
-        }else if((this.parent === null ||  this.parent === scene) && deployer.getObjectsAtPosition(this.getPositionGrid()).length > 1){
-            // To do
         }
     }
     onChildrenMoveOut(identifier){
@@ -333,18 +331,18 @@ class Object3D{
         var context = canvas.getContext("2d");
         // console.log(console);
 
-        context.font = "25pt Source arial, sans-serif";
-        context.textAlign = "center";
-        context.fillStyle = background;
+
         let w = 600;
         let h = 600;
         var x = canvas.width / 2;
         var y = canvas.height / 2;
+        context.fillStyle = background;
 
         context.fillRect(0, 0, w, h);
 
         context.fillStyle = color;
-        context.fillText(text, x, y);
+        // context.fillText(text, x, y);
+        Object3D.wrapText(context, text,x,y,w/2,h/4, 25 )
         let texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
         if(flip){
@@ -355,9 +353,109 @@ class Object3D{
             texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.y = - 1;
         }
-        return texture;;
+        return texture;
     }
+    static getTextHeight(context, text, x, y, maxWidth, lineHeight){
+        var lines = text.split("\n");
+        y = 0;
+        for(var n = 0; n < lines.length; n++) {
+            var metrics = context.measureText(lines[n]);
+            var testWidth = metrics.width;
+            if (testWidth > maxWidth) {
+                var longLine = lines[n];
+                while (longLine !== ""){
+                    var c = 0;
+                    var testline = ''+longLine.substr(c, 1);
+                    var line = '';
+                    metrics = context.measureText(testline+"-")
+                    while (c < longLine.length && metrics.width < maxWidth){
+                        c++;
+                        line = testline;
+                        testline = testline+longLine.substr(c, 1);
+                        metrics = context.measureText(testline +"-")
+                    }
+                    longLine = longLine.substr(line.length,longLine.length - line.length )
+                    y += lineHeight;
+                }
+            } else {
+                y += lineHeight;
+            }
+        }
+        return y;
+    }
+    static wrapText(context, text, x, y, maxWidth, maxHeight, fontSize=25) {
+        if(text.length > 500){
+            return Object3D.wrapText(context, text.substr(0,500), x, y, maxWidth, maxHeight, fontSize);
+        }
+        context.font = fontSize+ "pt Source arial, sans-serif";
+        context.textAlign = "center";
+        var lineHeight = Math.ceil(fontSize*1.25);
+        var height = Object3D.getTextHeight(context, text, x, y, maxWidth, lineHeight);
+        while (height > maxHeight){
+            fontSize = Math.floor(fontSize * (maxHeight/height));
+            // console.log("reduce; " , fontSize, " height : ", height)
+            context.font = fontSize+ "pt Source arial, sans-serif";
+            lineHeight = Math.ceil(fontSize*1.25);
+            height = Object3D.getTextHeight(context, text, x, y, maxWidth, lineHeight);
+        }
+        if(fontSize === 0) {
+            fontSize = 1;
+            lineHeight = 2;
+            height = Object3D.getTextHeight(context, text, x, y, maxWidth, lineHeight);
 
+        }
+        // console.log("Height: ", height, " line: ", lineHeight, " text: "  , text, " Y: ", y, " fontSize: ", fontSize, " maxHeight", maxHeight)
+        y = y - (height - lineHeight)/2;
+        var lines = text.split("\n");
+
+        for(var n = 0; n < lines.length; n++) {
+            var metrics = context.measureText(lines[n]);
+            var testWidth = metrics.width;
+            if (testWidth > maxWidth) {
+                var longLine = lines[n];
+                while (longLine !== ""){
+                    let c = 0;
+                    let testline = ''+longLine.substr(c, 1);
+                    var line = '';
+                    metrics = context.measureText(testline+"-")
+                    while (c < longLine.length && metrics.width < maxWidth){
+                        c++;
+                        line = testline;
+                        testline = testline+longLine.substr(c, 1);
+                        metrics = context.measureText(testline +"-")
+                    }
+                    if(line.endsWith(" ") || testline.endsWith(" ") || line === longLine){
+                        if(line === longLine){
+                            let c = 0;
+                            metrics = context.measureText(line)
+                            while (metrics.width < maxWidth){
+                                line += " ";
+                                metrics = context.measureText(line)
+                            }
+                            line = line.substr(0, line.length - 1)
+                        }
+                        context.fillText(line, x, y);
+                    }else{
+                        context.fillText(line+"-", x, y);
+                    }
+                    longLine = longLine.substr(line.length,longLine.length - line.length)
+                    y += lineHeight;
+                }
+            } else {
+                let testline = lines[n] + " "
+                if(lines.length > 1){
+                    let c = 0;
+                    metrics = context.measureText(testline)
+                    while (metrics.width < maxWidth){
+                        testline += " ";
+                        metrics = context.measureText(testline)
+                    }
+                }
+                context.fillText(testline.substr(0, testline.length - 1), x, y);
+                y += lineHeight;
+            }
+        }
+    }
 }
 // class Scene3D extends Object3D{
 //     constructor() {
@@ -522,7 +620,11 @@ class Code3D extends Object3D{
             return this.destroyer();
             // }
         }
-        this.setObject(editedCodeObject);
+
+        this.redraw(editedCodeObject)
+    }
+    redraw(object, parent, identifier) {
+        this.setObject(object);
         this.mesh.material = this.constructor.getTextMaterial(this.object);
         this.mesh.draw();
     }
@@ -761,6 +863,8 @@ class Function3D extends Code3D{
 class Module3D extends Code3D{
     constructor(module, parent=scene, identifier=""){
         super(module, parent, identifier);
+        this.actions["Set filename"] = this.opt_setReference;
+        this.actions["Save"] = this.opt_save;
     }
 
     setObject(object) {
@@ -774,6 +878,26 @@ class Module3D extends Code3D{
 
     }
 
+
+    opt_setReference(){
+        return this.setReference;
+    }
+    setReference(){
+        var name = prompt("insert name");
+        name = name.trim();
+        if (!name.endsWith(".js")) name = name + ".js";
+        this.object.node.reference = name;
+        this.redraw(this.object, this.parent, this.identifier)
+    }
+    opt_save() {
+        if (this?.object?.node?.reference !== undefined){
+            return this.save;
+        }
+        return null;
+    }
+    save(){
+        clientserver.httpPost("/src/"+this.object.node.reference,this.object.node.code,function() {});
+    }
 
     // editFromText(newCode) {
     //     var model = this.object;
