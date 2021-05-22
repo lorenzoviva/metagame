@@ -40,19 +40,28 @@ class Object3D{
         this.setObject(object);
     }
     redraw(object, parent, identifier){
+        var g_pos = this.getPositionGrid();
+        var i_pos = this.getPositionInternal();
+        this.parent = parent;
+        this.identifier = identifier;
         if(object?.getGenericMesh !== undefined){
-            var mesh = object.getGenericMesh(parent, identifier);
-            var g_pos = this.getPositionGrid();
-            var i_pos = this.getPositionInternal();
-            this.parent = parent;
-            this.identifier = identifier;
+            let mesh = object.getGenericMesh(parent, identifier);
             this.setMesh(mesh);
             this.setObject(object);
             this.setPositionGrid(g_pos);
             this.setPositionInternal(i_pos);
         }else{
-            deployer.setGenericMeshGetter(object, this.constructor.name);
-            return this.redraw(object, parent, identifier);
+            var objectType = deployer.getObject3DType(object);
+            let color = new classes.Color().randomLight();
+            let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':identifier),"rgb(0,0,0)", color, true) });
+            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':(object.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(object).serialize()):JSON.stringify(object.serialize()))),"rgb(0,0,0)" , color.darker(0.1), false, true) });
+            let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType ,"rgb(0,0,0)" , color.lighter(0.2), true) } );
+            let mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
+            this.setMesh(mesh);
+            this.setObject(object);
+            this.setPositionGrid(g_pos);
+            this.setPositionInternal(i_pos);
+
         }
     }
     getCenterPoint(){
@@ -183,7 +192,11 @@ class Object3D{
             }
         }
         if(this.parent !== scene){
-            this.parent.object[this.identifier] = this.object;
+            try {
+                this.parent.object[this.identifier] = this.object;
+            }catch (e){
+                //not really important, other reference are defined. This only occurs on objects
+            }
         }
     }
 
@@ -220,12 +233,7 @@ class Object3D{
             try {
                 deserializable = JSON.parse(text);
             } catch (e) {}
-            var deserialized = null;
-            if (deserializable.type && deployer.classes[deserializable.type] && deployer.classes[deserializable.type].deserialize) {
-                deserialized = deployer.classes[deserializable.type].deserialize(deserializable);
-            } else {
-                deserialized = deployer.classes.ObjectWrapper.deserialize(deserializable)
-            }
+            var deserialized = deployer.classes.ObjectWrapper.deserialize(deserializable);
             this.redraw(deserialized, this.parent, this.identifier)
 
             // this.setObject(deserialized)

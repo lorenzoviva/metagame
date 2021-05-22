@@ -33,27 +33,39 @@ classes.ObjectWrapper = class ObjectWrapper{
         return that;
     }
     static deserialize(object){
-        if((object === null || object === undefined)
-            || (object.constructor.name !== Object.name && object.constructor.toString().indexOf('[native code]') > -1)){//object to be serialize has a primitive type
-           // console.log("DESERIALIZING [NATIVE]: ", object);
-            return object;
-        }else{
-            // console.log("DESERIALIZING: ", object);
+        var deserialized = null;
 
-            const fields = Object.getOwnPropertyNames(object);
-            for(var i = 0; i < fields.length; i++){
-                if(Object.hasOwnProperty(object[fields[i]],"meta_type")){
-                    let field_type = geval(object[fields[i]].meta_type);
-                    if(field_type.deserialize){
-                        object[fields[i]] = field_type.deserialize(object[fields[i]], true)
-                    }
-                }else {
+        if((object === null || object === undefined) || (object.constructor.name !== Object.name && object.constructor.toString().indexOf('[native code]') > -1) || (object.hasOwnProperty("type") && object.type === Object.name)){//object to be serialize has a primitive type
+            object && object.hasOwnProperty("type") && delete object.type;
+            object && object.hasOwnProperty("meta_type") && delete object.type;
+            console.log("DESERIALIZED (obj -> ObjectWrapper):",object);
+            deserialized = object;
+        }else {
+            if(object.hasOwnProperty("meta_type") && geval(object.meta_type).deserialize){
+                console.log("DESERIALIZING (ObjectWrapper -> "+ object.meta_type + "): ", object);
+                deserialized = geval(object.meta_type).deserialize(object, true);
+                console.log("DESERIALIZED (ObjectWrapper -> "+ object.meta_type + "): ", object);
+                delete object.type;
+                delete object.meta_type;
+            }else if(object.hasOwnProperty("type") && deployer.classes[object.type] && deployer.classes[object.type].deserialize) {
+                console.log("DESERIALIZING (ObjectWrapper -> "+ object.type + "): ", object);
+                deserialized = deployer.classes[object.type].deserialize(object);
+                console.log("DESERIALIZED (ObjectWrapper -> "+ object.type + "): ", object);
+                delete object.type;
+            } else{
+                console.log("DESERIALIZING (json -> ObjectWrapper): ", object);
+                const fields = Object.getOwnPropertyNames(object);
+                for(var i = 0; i < fields.length; i++){
                     object[fields[i]] = classes.ObjectWrapper.deserialize(object[fields[i]]);
                 }
+                console.log("DESERIALIZED (json -> ObjectWrapper):",object)
+                delete object.type;
+                delete object.meta_type;
+                deserialized = object;
             }
-           // console.log("DESERIALIZED:",object)
-            return object;
         }
+        return deserialized;
+
     }
 }
 THREE.Object3D.prototype.serialize = function (reference=true) {
@@ -84,14 +96,14 @@ classes.Object3D.prototype.serialize = function(reference=false){
    // console.log("STRINGIFY: ", that);
     return that;
 }
-classes.Code.prototype.serialize= function(reference=true){
+classes.Code.prototype.serialize = function(reference=true){
    // console.log("SERIALIZING:", this, reference);
     return {meta_type:"deployer.classes." + this.constructor.name, type:this.constructor.name, code:this.node.code};
 }
 THREE.Object3D.deserialize = function (object, reference=true) {
-   // console.log("DESERIALIZING:",object)
+   // console.log("DESERIALIZING (THREE.Object3D): ",object)
     let that = scene.findObjectByUUID(object.uuid);
-   // console.log("DESERIALIZED:",that)
+   // console.log("DESERIALIZED  (THREE.Object3D):",that)
     return that;
 }
 THREE.Object3D.prototype.findObjectByUUID = function(uuid){
@@ -108,33 +120,28 @@ THREE.Object3D.prototype.findObjectByUUID = function(uuid){
     }
 }
 classes.Code.deserialize = function(object, reference=true){
-   // console.log("DESERIALIZING:",object)
+   // console.log("DESERIALIZING (Code):",object)
+
     let that = new classes[object.type](object.code);
-   // console.log("DESERIALIZED:",that)
+   // console.log("DESERIALIZED (Code):",that)
 
     return that;
 }
-classes.Object3D.deserialize = function(json, reference=false){
-   // console.log("DESERIALIZING:",json, reference)
+classes.Object3D.deserialize = function(object, reference=false){
+   // console.log("DESERIALIZING (Object3D):",object, reference)
+    var that = object;
 
     if(reference){
-        let that = deployer.objects[json.name];
-       // console.log("DESERIALIZED:",that, reference)
-        return that;
+        // console.log("DESERIALIZED:",deployer.objects[that.name], reference)
+        return deployer.objects[that.name];
     }
-    var that = JSON.parse(json);
+    Object.assign(that, this, object);
+
     const fields = Object.getOwnPropertyNames(that);
     for(var i = 0; i < fields.length; i++){
-        if(Object.hasOwnProperty(that[fields[i]], "meta_type")){
-            let field_type = geval(that[fields[i]].meta_type);
-            if(field_type.deserialize){
-                that[fields[i]] = field_type.deserialize(that[fields[i]], true)
-            }
-        }else {
-            that[fields[i]] = classes.ObjectWrapper.deserialize(that[fields[i]]);
-        }
+        that[fields[i]] = classes.ObjectWrapper.deserialize(that[fields[i]]);
     }
-   // console.log("DESERIALIZED:",that, reference)
+   // console.log("DESERIALIZED  (Object3D):",that, reference)
     return that;
 }
 // Object.prototype.serialize = function () {

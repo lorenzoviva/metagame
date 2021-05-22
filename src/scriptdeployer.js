@@ -248,6 +248,17 @@ class GlobalDeployer{
 
         return this.to3D.apply(object, [position, scale, parent, identifier, type])
     }
+    getObject3DType(object){
+        var objectType = "";
+        if(object === undefined){
+            objectType = "Undefined3D"
+        }else if(object === null){
+            objectType = "Null3D"
+        }else{
+            objectType = object.constructor.name + "3D"
+        }
+        return objectType;
+    }
     to3D(position, scale=new THREE.Vector3(1,1,1), parent=scene, identifier="", type=classes.Object3D.constructor){
         var object = this;
         var object3D = null;
@@ -256,14 +267,7 @@ class GlobalDeployer{
             object3D.setObject(object);
             object3D.setPositionGrid(position)
         }else{
-            var objectType = "";
-            if(object === undefined){
-                objectType = "Undefined3D"
-            }else if(object === null){
-                objectType = "Null3D"
-            }else{
-                objectType = object.constructor.name + "3D"
-            }
+            var objectType = deployer.getObject3DType(object)
             try{
                 //console.log("try creating: ",objectType, parent);
                 if(objectType === classes.Object3D.name){
@@ -273,10 +277,10 @@ class GlobalDeployer{
                     let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType ,"rgb(0,0,0)" , color.lighter(0.2), true) } );
                     var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
                     // console.log("constructing: ",objectType, object, parent, identifier, mesh);
-                    object3D = new classes[objectType](object, parent, identifier, mesh, objectType, objectType,{},{},[]);
+                    object3D = new deployer.classes[objectType](object, parent, identifier, mesh, objectType, objectType,{},{},[]);
                     //    console.log("constructing: ",objectType, object3D);
                 }else{
-                    object3D = new classes[objectType](object, parent, identifier);
+                    object3D = new deployer.classes[objectType](object, parent, identifier);
                     //  console.log("constructing: ",objectType, object3D);
 
                 }
@@ -306,7 +310,7 @@ class GlobalDeployer{
                                 "}; "+ objectType);
 
                     Object.defineProperty (C, 'name', {value: objectType});
-                    classes[objectType] = C;
+                    deployer.classes[objectType] = C;
                     // console.log("Created constructor for class: " + objectType+ ", restarting to3D...");
                     return deployer.to3D.apply(object, [position, scale,  parent, identifier]);
                 }else{
@@ -321,8 +325,11 @@ class GlobalDeployer{
         return object3D;
     }
     setGenericMeshGetter(object, objectType){
+        // console.log("setGenericMeshGetter(", object, ",", objectType, ")")
         let color = new classes.Color().randomLight();
         object.constructor.prototype.getGenericMesh = function getGenericMesh(parent, identifier){
+            // console.log("getGenericMesh(", this, ",", parent, ")")
+
             let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':identifier),"rgb(0,0,0)" , color, true) });
             let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':(this.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(this).serialize()):JSON.stringify(this.serialize()))), "rgb(0,0,0)" , color.darker(0.1), false, true) });
             let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType,"rgb(0,0,0)" , color.lighter(0.2), true) } );
