@@ -269,7 +269,7 @@ class GlobalDeployer{
         }else{
             var objectType = deployer.getObject3DType(object)
             try{
-                //console.log("try creating: ",objectType, parent);
+                console.log("try creating: ",objectType, parent);
                 if(objectType === classes.Object3D.name){
                     let color = new classes.Color().randomLight();
                     let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':identifier),"rgb(0,0,0)", color, true) });
@@ -278,10 +278,10 @@ class GlobalDeployer{
                     var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
                     // console.log("constructing: ",objectType, object, parent, identifier, mesh);
                     object3D = new deployer.classes[objectType](object, parent, identifier, mesh, objectType, objectType,{},{},[]);
-                    //    console.log("constructing: ",objectType, object3D);
+                       console.log("constructing: ",objectType, object3D);
                 }else{
                     object3D = new deployer.classes[objectType](object, parent, identifier);
-                    //  console.log("constructing: ",objectType, object3D);
+                     // console.log("constructing: ",objectType, object3D);
 
                 }
                 object3D.setPositionGrid(position);
@@ -289,13 +289,13 @@ class GlobalDeployer{
                 object3D.mesh.scale.y = scale.y;
                 object3D.mesh.scale.z = scale.z;
                 object3D.setPositionInternal(new THREE.Vector3(scale.x/2,scale.y/2,scale.z/2))
-                //console.log("finished creating: ",objectType, object3D);
+                // console.log("finished creating: ",objectType, object3D);
                 // object3D.setPositionInternal(new THREE.Vector3(scale.x,scale.y,scale.z))
 
                 // realObject.setObject(object)
             } catch (e) {
                 if(e instanceof TypeError){
-                    // console.log("Creating constructor for class: " + objectType+ " parent:",  parent, " object: " , object , " error: ", e);
+                    console.log("Creating constructor for class: " + objectType+ " parent:",  parent, " object: " , object , " error: ", e);
                     var depth = 0;
                     var node = parent;
                     while (node !== scene){
@@ -311,12 +311,12 @@ class GlobalDeployer{
 
                     Object.defineProperty (C, 'name', {value: objectType});
                     deployer.classes[objectType] = C;
-                    // console.log("Created constructor for class: " + objectType+ ", restarting to3D...");
+                    console.log("Created constructor for class: " + objectType+ ", restarting to3D...");
                     return deployer.to3D.apply(object, [position, scale,  parent, identifier]);
                 }else{
                     // e.constructor.prototype.to3D = to3D;
                     // return e.to3D(position, scale, parent);
-                    //console.log("A different error occurred: " + e + ", restarting to3D...");
+                    console.log("A different error occurred: " + e + ", restarting to3D...");
                     return deployer.to3D.apply(e, [position, scale, parent, identifier])
                 }
             }
@@ -329,9 +329,32 @@ class GlobalDeployer{
         let color = new classes.Color().randomLight();
         object.constructor.prototype.getGenericMesh = function getGenericMesh(parent, identifier){
             // console.log("getGenericMesh(", this, ",", parent, ")")
-
             let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':identifier),"rgb(0,0,0)" , color, true) });
-            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((this === undefined || this === null ?'undefined':(this.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(this).serialize(), null, 2):JSON.stringify(this.serialize(), null, 2))), "rgb(0,0,0)" , color.darker(0.1), false, true) });
+            let strRepresentation = 'undefined';
+            if(this !== undefined && this !== null){
+                const getCircularReplacer = () => {
+                    const seen = new WeakSet();
+                    return (key, value) => {
+                        if (typeof value === "object" && value !== null) {
+                            if (seen.has(value)) {
+                                return;
+                            }
+                            seen.add(value);
+                        }
+                        return value;
+                    };
+                };
+                try {
+                    if (this.serialize === undefined) {
+                        strRepresentation = JSON.stringify(new classes.ObjectWrapper(this).serialize(), getCircularReplacer(), 2);
+                    } else {
+                        strRepresentation = JSON.stringify(this.serialize(), getCircularReplacer(), 2);
+                    }
+                }catch (e){
+                    strRepresentation = "" + this;
+                }
+            }
+            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(strRepresentation, "rgb(0,0,0)" , color.darker(0.1), false, true) });
             let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType,"rgb(0,0,0)" , color.lighter(0.2), true) } );
             var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material])
             return mesh;

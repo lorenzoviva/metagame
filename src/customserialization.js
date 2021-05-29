@@ -1,13 +1,48 @@
 var classes = require("./codeobjects.js");
-
-
+var utils = require("util")
+window.nodeutils = utils;
 classes.ObjectWrapper = class ObjectWrapper{
     constructor(object) {
         this.object = object;
        // console.log("object: ", object)
 
     }
+    // removeCyclic () {
+    //     var seenObjects = [];
+    //     var new_object = {};
+    //     function detect (obj, parents=[]) {
+    //         if (obj && typeof obj === 'object') {
+    //             if (seenObjects.indexOf(obj) !== -1) {
+    //                 return true;
+    //             }
+    //             seenObjects.push(obj);
+    //             var layer_object = new_object;
+    //             for (var parent of parents){
+    //                 layer_object = layer_object[parent]
+    //             }
+    //             for (var key in obj) {
+    //                 let cyclic = false;
+    //                 if (obj.hasOwnProperty(key) && detect(obj[key], parents.concat([key]))) {
+    //                     console.log("key: ", key, " of object: " , obj , " is cyclic")
+    //                     cyclic = true;
+    //                 }else{
+    //                     layer_object[key] = obj[key];
+    //                 }
+    //                 return cyclic;
+    //             }
+    //         }
+    //         return false;
+    //     }
+    //     if(detect(this.object)){
+    //         return new_object;
+    //     }else{
+    //         return this.object;
+    //     }
+    //
+    // }
     serialize(){
+        // this.object = this.removeCyclic();
+
        // console.log("SERIALIZING:", this);
         if((this.object === null || this.object === undefined)
             || (this.object.constructor.name !== Object.name && this.object.constructor.toString().indexOf('[native code]') > -1)){//object to be serialize has a primitive type

@@ -22,7 +22,24 @@ THREE.Vector3.prototype.getRotated = function(v){
 var maxFPS = 60;
 var last_frame_time = new Date();
 var game_loop_timeout = null;
-
+// window.wm = [];
+// var origCall = Function.prototype.call;
+// Function.prototype.call = function (thisArg) {
+//     console.log("calling a function: ", this, thisArg, arguments);
+//     // wm.push(this);
+//     var args = Array.prototype.slice.call(arguments, 1);
+//     origCall.apply(thisArg, args);
+// };
+// window.wm = [];
+// var oldProt = Function.prototype;
+// var origCall = Function.constructor;
+// Function = function () {
+//     console.log("calling a function: ", this, arguments);
+// //     // wm.push(this);
+//     var args = Array.prototype.slice.call(arguments, 1);
+//     origCall.apply(this, args);
+// };
+// Function.prototype = oldProt;
 
 
 window.addEventListener( 'mousemove', interfaces.onMouseMove, false );
@@ -151,7 +168,12 @@ function init() {
 
     deployer.importGrid();
     // deployer.import3DJSModule('/src/kernel.js')
-    deployer.import3DJSModule('/src/playground.js')
+    deployer.import3DJSModule('/src/playground.js');
+
+    // window.selfSource = "";
+    // clientserver.httpGet("https://localhost:8000/client.js", function f(data){ window.selfSource = data; });
+    // window.parsedSource = new deployer.classes.NodeCodeWalker(selfSource);
+
     // import3DJSModule('/src/clientserver.js',new THREE.Vector3(-4,0,0))
     // import3DJSModule('/src/metaobjects.js',new THREE.Vector3(-8,0,0))
     // deployer.import3DJSModule('/src/playground.js')

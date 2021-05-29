@@ -1,8 +1,108 @@
-const {Parser} = require('acorn');
+const {LooseParser} = require('acorn-loose');
 const cloneDeep = require('lodash/fp/cloneDeep');
-const classFields = require('acorn-class-fields');
+// const classFields = require('acorn-class-fields');
+const walk = require("acorn-walk")
+const recast = require("recast")
 
 var classes = {}
+
+
+class NodeCodeWalker{
+    constructor(code) {
+        this.source = code;
+        this.root = recast.parse(code,{
+            parser: LooseParser
+        });//LooseParser.parse(code);
+        this.walk = recast;
+        // walk.ancestor(this.root, {
+        //     Literal(_, ancestors) {
+        //         console.log("This literal's ancestors are:", ancestors.map(n => n.type))
+        //     }
+        // });
+    }
+    getVisitor(localpath){
+        var that = this;
+        if(localpath !== "" && !localpath.endsWith(".")) localpath += "."
+        return {
+            visitFunctionDeclaration: function(path){
+                if(path?.name !== undefined){
+                    console.log("visitFunctionDeclaration:", localpath  + path.name)
+                    that.walk.visit(path.body,that.getVisitor(localpath + path.name) );
+                }else{
+                    console.log("visitFunctionDeclaration:", path)
+                }
+                return false;
+            },
+            // visitFunction: function(path){
+            //     console.log("visitFunction:", path.name)
+            //     return false;
+            // },
+            visitAssignmentExpression: function(path){
+                if(path?.value?.left !== undefined){
+                    var fullpath = that.source.substr(path.value.left.start, path.value.left.end - path.value.left.start);
+                    console.log("visitAssignmentExpression:",localpath + fullpath)
+                    that.walk.visit(path.value.right,that.getVisitor(localpath + fullpath) );
+                }else{
+                    console.log("visitAssignmentExpression:", path)
+                }
+                return false;
+            },
+            visitProperty(path) {
+                console.log("visitProperty:", path.value.key.value)
+                return false;
+            },
+            // visitIdentifier(path) {
+            //     console.log("IDENTIFIER: ", localpath + path.value.name)
+            //     return false;
+            // },
+            visitVariableDeclaration: function(path){
+                if(path?.name !== undefined){
+                    console.log("visitVariableDeclaration:", localpath + path.name)
+                }else{
+                    console.log("visitVariableDeclaration:", path)
+                }
+                return false;
+            }
+        };
+    }
+
+    getNamespace(){
+        var names = [];
+        this.walk.visit(this.root,this.getVisitor('') );
+        // this.walk.ancestor(this.root, {
+        //     AssignmentExpression: function(node, ancestors) {
+        //         if(node.left.type === "Identifier" && (node.right.type === "FunctionExpression" || node.right.type === "ArrowFunctionExpression")) {
+        //             names.push(ancestors.map(function(n){
+        //                if(n.type === "Property") return n.key.value;
+        //                if(n.type === "ArrayExpression") return n.key.value;
+        //                return  n.type === "Literal"?n.id.name:n.type;
+        //             }) + " --> " + node.left.name);
+        //         }
+        //     },
+        //     VariableDeclaration: function(node, ancestors) {
+        //         node.declarations.forEach(function (declaration) {
+        //             if(declaration.init && (declaration.init.type === "FunctionExpression" || declaration.init.type === "ArrowFunctionExpression")) {
+        //                 names.push(ancestors.map(function(n){
+        //                     if(n.type === "Property") return n.key.value;
+        //                     return  n.type === "Literal"?n.id.name:n.type;
+        //                 }) + " --> " +  declaration.id.name);
+        //
+        //             }
+        //         });
+        //     },
+        //     Function: function(node, ancestors) {
+        //         if(node.id) {
+        //             names.push(ancestors.map(function(n){
+        //                 if(n.type === "Property") return n.key.value;
+        //                 return  n.type === "Literal"?n.id.name:n.type;
+        //             }) + " --> " +  node.id.name);
+        //         }
+        //     }
+        // });
+        return names;
+    }
+}
+classes.NodeCodeWalker = NodeCodeWalker;
 class Code{
 
     constructor(code, node=null, parent=null) {
@@ -14,7 +114,7 @@ class Code{
         }
         var root = node;
         if(node === null){
-            root = Parser.extend(classFields).parse(text_code);
+            root = LooseParser.parse(text_code);//extend(classFields)
         }
         // console.log("parsed: ", root);
         this.jsToAST(root, text_code, parent);

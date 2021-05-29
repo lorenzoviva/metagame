@@ -182,9 +182,15 @@ class Object3D{
     objectSetup(){
         let depth = this.getDepth();
         // console.log("DEPTH: " + depth + " for  " + this.object );
-
+        this.setupWatcher();
         if(depth < 1) {
+            const excludes = ["watch", "unwatch"]
             var sub_objects = Object.getOwnPropertyNames(this.object);
+            for(var exclude of excludes){
+                if(sub_objects.includes(exclude)){
+                    sub_objects.splice(sub_objects.indexOf(exclude),1)
+                }
+            }
             // var sub_scale = this.mesh.geometry.parameters.width / (2 * sub_objects.length)
             var sub_scale = this.mesh.scale.x / (2 * sub_objects.length)
             for (var child_i = 0; child_i < sub_objects.length; child_i++) {
@@ -202,6 +208,62 @@ class Object3D{
                 //not really important, other reference are defined. This only occurs on objects
             }
         }
+    }
+    setupWatcher(){
+        if(this.object === null || this.object === undefined || !this.object instanceof Object ||  this.object.constructor.toString().indexOf('[native code]') > -1 ) return;
+        console.log("s setupWatcher: " , this.object)
+        if (!this.object.watch) {
+            console.log("!this.object.watch: " , this.object.watch)
+
+            const that = this;
+            this.object.watch = function (prop, handler) {
+                var oldval = this[prop],
+                    newval = oldval,
+                    getter = function () {
+                        return newval;
+                    },
+                    setter = function (val) {
+                        oldval = newval;
+                        newval = val;
+                        handler.call(that, this, prop, oldval, val);
+                    };
+                if (delete this[prop]) { // can't watch constants
+                    if (this.defineProperty) // ECMAScript 5
+                        this.defineProperty(this, prop, {
+                            get: getter,
+                            set: setter
+                        });
+                    else if (this.__defineGetter__ && this.__defineSetter__) { // legacy
+                        this.__defineGetter__.call(this, prop, getter);
+                        this.__defineSetter__.call(this, prop, setter);
+                    }
+                }
+            };
+            console.log("s watching: " , this.object)
+
+            for(var prop of Object.getOwnPropertyNames(this.object)){
+                console.log("watching: " , prop)
+                if(prop !== "watch" && prop !== "unwatch")
+                this.object.watch(prop, that.onObjectExternalEdit)
+            }
+        }
+        // object.unwatch
+        if (!this.object.unwatch){
+            this.object.unwatch = function (prop) {
+                var val = this[prop];
+                delete this[prop]; // remove accessors
+                this[prop] = val;
+            };
+        }
+    }
+    onObjectExternalEdit(new_object, property, old_value, new_value){
+        console.log("external edit: ",this, new_object, property,old_value, new_value)
+        for(var prop of Object.getOwnPropertyNames(new_object)){
+            console.log("Prop: ", prop, " value: ", new_object[prop])
+        }
+        if(new_value !== old_value)
+        this.redraw(new_object, this.parent, this.identifier);
+        return new_value;
     }
 
     put(scene){
@@ -330,7 +392,8 @@ class Object3D{
         var canvas = document.createElement("canvas");
         var context = canvas.getContext("2d");
         // console.log(console);
-
+        canvas.setAttribute("width",600)
+        canvas.setAttribute("height",600)
 
         let w = 600;
         let h = 600;
@@ -342,7 +405,7 @@ class Object3D{
 
         context.fillStyle = color;
         // context.fillText(text, x, y);
-        Object3D.wrapText(context, text,x,y,w/2,h/4, 25 )
+        Object3D.wrapText(context, text,x,y,w,h, 70 )
         let texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
         if(flip){
@@ -384,17 +447,17 @@ class Object3D{
         return y;
     }
     static wrapText(context, text, x, y, maxWidth, maxHeight, fontSize=25) {
-        if(text.length > 500){
-            return Object3D.wrapText(context, text.substr(0,500), x, y, maxWidth, maxHeight, fontSize);
+        if(text.length > 800){
+            return Object3D.wrapText(context, text.substr(0,797) + "...", x, y, maxWidth, maxHeight, fontSize);
         }
-        context.font = fontSize+ "pt Source arial, sans-serif";
+        context.font = fontSize+ "px Source arial, sans-serif";
         context.textAlign = "center";
         var lineHeight = Math.ceil(fontSize*1.25);
         var height = Object3D.getTextHeight(context, text, x, y, maxWidth, lineHeight);
         while (height > maxHeight){
             fontSize = Math.floor(fontSize * (maxHeight/height));
             // console.log("reduce; " , fontSize, " height : ", height)
-            context.font = fontSize+ "pt Source arial, sans-serif";
+            context.font = fontSize+ "px Source arial, sans-serif";
             lineHeight = Math.ceil(fontSize*1.25);
             height = Object3D.getTextHeight(context, text, x, y, maxWidth, lineHeight);
         }
@@ -519,7 +582,7 @@ class Code3D extends Object3D{
         super();
         this.parent = parent;
         this.setObject(code);
-
+        this.identifier = identifier;
         this.setName(this.object.type);
         this.common_name = this.object.type;
         this.animations = {};
@@ -535,7 +598,7 @@ class Code3D extends Object3D{
         delete this.actions["Edit text"]
         this.controls = [];
         // var mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1),  this.constructor.getTextMaterial(this.object.node))
-        var mesh = new THREE.OpenCubeMesh(this.constructor.getTextMaterial(this.object))
+        var mesh = new THREE.OpenCubeMesh(this.constructor.getTextMaterial(this))
         this.setMesh(mesh);
         this.setPositionInternal(new THREE.Vector3(0.5,0.5,0.5))
 
@@ -625,7 +688,7 @@ class Code3D extends Object3D{
     }
     redraw(object, parent, identifier) {
         this.setObject(object);
-        this.mesh.material = this.constructor.getTextMaterial(this.object);
+        this.mesh.material = this.constructor.getTextMaterial(this);
         this.mesh.draw();
     }
 
@@ -772,7 +835,8 @@ class Code3D extends Object3D{
     }
 
 
-    static getTextMaterial(code) {
+    static getTextMaterial(code3d) {
+        var code = code3d.object;
         var node = code.node;
         var materials = [];
         // let parameters = { transparent: true, opacity: 0.8}
@@ -818,7 +882,10 @@ class Code3D extends Object3D{
                 materials.push(new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: Object3D.getTextTexture(className, classes.Identifier.secondaryColor, classes.Identifier.primaryColor, true) } ));
                 return materials;
             case "FunctionDeclaration":
-                var functionName = code.getDeclaredFunctionName()
+                var functionName = code.getDeclaredFunctionName();
+                if (functionName === ""){
+                    functionName = code3d.identifier;
+                }
                 //console.log("FUNCTION DECLARATION:" ,code, functionName)
                 // parameters.emissive = 'rgb(13,43,10)';
                 parameters.color = classes.FunctionDeclaration.primaryColor;
@@ -884,6 +951,7 @@ class Module3D extends Code3D{
     }
     setReference(){
         var name = prompt("insert name");
+        if(name === null || name === "") return;
         name = name.trim();
         if (!name.endsWith(".js")) name = name + ".js";
         this.object.node.reference = name;
@@ -927,7 +995,8 @@ class Module3D extends Code3D{
         // }
     }
 
-    static getTextMaterial(module) {
+    static getTextMaterial(module3d) {
+        var module = module3d.object;
         var node = module.node;
         var materials = [];
         let parameters = { transparent: true, opacity: 0.8, emissive: 'rgb(12,96,93)', color: "rgb(12,96,93)", side: THREE.DoubleSide};
