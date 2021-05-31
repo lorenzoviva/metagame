@@ -653,6 +653,8 @@ class Code3D extends Object3D{
         if(typeof this.object !== "object" || !(this.object instanceof classes.Code) ){
             this.object = classes.Code.createCode(this.object)
         }
+        // this.setupWatcher();
+
         var dependencyURLList = this.object.dependencies
         this.dependencies = {};
         for (var dependency_i = 0; dependency_i < dependencyURLList.length; dependency_i++) {

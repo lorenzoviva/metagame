@@ -356,6 +356,20 @@ class Module extends Code{
 }
 classes.Module = Module;
 
+class CodeRelation{
+    constructor(from, to, relationLeft, relationRight) {
+        this.from = from;
+        this.to = to;
+        this.left = relationLeft;
+        this.right = relationRight;
+        this.left3D = relationLeft === from;
+        this.right3D = relationRight === to;
+    }
+    relate(){
+        this.left = this.right;
+    }
+}
+classes.CodeRelation = CodeRelation;
 
 class Relation{
     constructor(from, to, shape, identifier) {
@@ -363,6 +377,10 @@ class Relation{
         this.to = to;
         this.shape = shape;
         this.identifier = identifier;
+        this.code = [] /*{from: { to: "",
+                            object:  { to:""}},
+                    to:   { from: "",
+                            object: { from: ""}}}*/
     }
 }
 classes.Relation = Relation;

@@ -56,21 +56,18 @@ class GlobalDeployer{
         this.importCodeFromModules(added_modules);
         return added_modules;
     }
-    importRelations(object, relations_array, shape="arc", height=5){
-        for(var relations_i = 0; relations_i < relations_array.length; relations_i++){
-            var relation = relations_array[relations_i];
-            // let relation = relations[relations_i];
-            //console.log("Importing relation: ", object, relation)
-            let link = new classes.Relation(object, relation);
-            link.shape = shape;
-            link.height = height;
-            link.color = new classes.Color().randomLight().toString();
-            let link3D = new classes.Relation3D(link);
-            object.relations[link3D.name] = link3D;
-            relation.relations[link3D.name] = link3D;
-            this.relations[link3D.name] = link3D;
-            link3D.hide();
-        }
+    importRelation(object, relation, shape="arc", height=5){
+        //console.log("Importing relation: ", object, relation)
+        let link = new classes.Relation(object, relation);
+        link.shape = shape;
+        link.height = height;
+        link.color = new classes.Color().randomLight().toString();
+        let link3D = new classes.Relation3D(link);
+        object.relations[link3D.name] = link3D;
+        relation.relations[link3D.name] = link3D;
+        this.relations[link3D.name] = link3D;
+        link3D.hide();
+        return link;
     }
     showRelations(object3D){
         let relation_names = Object.getOwnPropertyNames(object3D.relations);
@@ -115,7 +112,7 @@ class GlobalDeployer{
             var dependency_position = new THREE.Vector3(position.x + this.inter_child_space.x*dependency_i + this.inter_layer_space.x,
                 position.y + this.inter_child_space.y*dependency_i + this.inter_layer_space.y,
                 position.z + this.inter_child_space.z*dependency_i + this.inter_layer_space.z)
-            //console.log("Deploy dependency: ", dependencyURLList[dependency_i], " at: ", dependency_position)
+            console.log("Deploy dependency: ", dependencyURLList[dependency_i], " at: ", dependency_position)
             if( module3D.dependencies[dependencyURLList[dependency_i]] === null){
                 var child_added = null;
                 if(dependencyURLList[dependency_i].startsWith("/src/")){
@@ -124,7 +121,8 @@ class GlobalDeployer{
                     child_added = this.createStubModule(dependencyURLList[dependency_i], dependency_position);
                 }
                 module3D.dependencies[dependencyURLList[dependency_i]] = child_added;
-                this.importRelations(module3D, [child_added],"arc", -5)
+                console.log("Dependencies loaded: ", module3D.dependencies)
+                this.importRelation(module3D, child_added,"arc", -5)
             }
         }
 
@@ -161,8 +159,11 @@ class GlobalDeployer{
             var codeblock = new classes.Code3D(codeObjects[instruction_i]);
             codeblock.setPositionGrid(code_position);
             //console.log("Importing instruction n°: " + instruction_i, codeblock)
-            this.importRelations(module3D, [codeblock])
-
+            var link = this.importRelation(module3D, codeblock)
+            var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i])
+            var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent())
+            link.code.push(code_relation_forward);
+            link.code.push(code_relation_backward);
         }
     }
     importCodeFromCode(code3D){
@@ -177,7 +178,12 @@ class GlobalDeployer{
                 code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x, code_position.y + this.inter_child_space.y, code_position.z + this.inter_child_space.z);
                 var codeblock = new classes.Code3D(codeObjects[instruction_i]);
                 codeblock.setPositionGrid(code_position);
-                this.importRelations(code3D, [codeblock], "arc", -5)
+                var link = this.importRelation(code3D, codeblock, "arc", -5)
+                var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i])
+                var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent())
+                link.code.push(code_relation_forward);
+                link.code.push(code_relation_backward);
+
             }
         }
     }
@@ -192,8 +198,11 @@ class GlobalDeployer{
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
             var codeblock = new classes.Code3D(codeObjects[instruction_i]);
             codeblock.setPositionGrid(code_position);
-            this.importRelations(code3D, [codeblock],"arc", -5)
-
+            var link = this.importRelation(code3D, codeblock,"arc", -5)
+            var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_params[instruction_i])
+            var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent())
+            link.code.push(code_relation_forward);
+            link.code.push(code_relation_backward);
         }
     }
     importDynamic3DJS(code,  position= new THREE.Vector3(0,0,0)){
