@@ -179,8 +179,8 @@ class GlobalDeployer{
                 var codeblock = new classes.Code3D(codeObjects[instruction_i]);
                 codeblock.setPositionGrid(code_position);
                 var link = this.importRelation(code3D, codeblock, "arc", -5)
-                var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i])
-                var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent())
+                var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i]);
+                var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent());
                 link.code.push(code_relation_forward);
                 link.code.push(code_relation_backward);
 
@@ -199,8 +199,8 @@ class GlobalDeployer{
             var codeblock = new classes.Code3D(codeObjects[instruction_i]);
             codeblock.setPositionGrid(code_position);
             var link = this.importRelation(code3D, codeblock,"arc", -5)
-            var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_params[instruction_i])
-            var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent())
+            var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_params[instruction_i]);
+            var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent());
             link.code.push(code_relation_forward);
             link.code.push(code_relation_backward);
         }

@@ -36,7 +36,6 @@ body{
     color: white;
     font-weight: bolder;
     padding: 2px;
-    display:none;
 }
 .texteditorpanel{
     left: 25%;
@@ -84,9 +83,6 @@ body{
 .texteditorpanel>.title{
     height: 26px;
     line-height: 20px;
-}
-.menu:not(:hover){
-    display:none;
 }
 .menu>.option{
     background-color: white;

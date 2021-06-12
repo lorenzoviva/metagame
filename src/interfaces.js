@@ -1,13 +1,185 @@
 const clientserver = require('./clientserver.js');
 var classes = require('./metaobjects.js');
 
+class MenuManager {
+    constructor() {
+        this.menus = {}
 
+    }
+
+    showMenu(mouse, realObject) {
+        this.realObject = realObject;
+        this.options = realObject.actions;
+        this.setupFirstMenu();
+        this.createMenu([],  mouse.cartesian.x,  mouse.cartesian.y);
+        // console.log("this.menus: ",this.menus)
+    }
+    setupFirstMenu(){
+        this.menus = {}
+        this.menus._title = this.realObject.common_name;
+        let optionList = Object.getOwnPropertyNames(this.options);
+        for (var i = 0; i < optionList.length; i++) {
+            let callback = this.options[optionList[i]].apply(this.realObject);
+            if(callback === null)continue;
+            var splittedOption = optionList[i].split(">");
+            var analyzedMenu = this.menus;
+            for(var l = 0; l < splittedOption.length; l++){
+                analyzedMenu[splittedOption[l]] = {...analyzedMenu[splittedOption[l]], ...{_title:splittedOption[l]}}
+                if(l === splittedOption.length-1){
+                    analyzedMenu[splittedOption[l]].callback = callback;
+                }
+                analyzedMenu = analyzedMenu[splittedOption[l]];
+            }
+        }
+    }
+    navigateMenu(event) {
+        let onhover = event.target.onhover;
+        if(onhover){
+            // console.log("X: ", this.current_menu.style.left.replace("px","") + this.current_menu.clientWidth,"Y",this.current_menu.style.top.replace("px","") + event.target.clientWidth )
+            onhover(event);
+            // console.log(this.current_menu)
+        }
+    }
+    createMenu(paths, x,y){
+        var menus = this.menus;
+        if(paths.length > 0){
+            this.closeOtherPaths(paths.slice(0, paths.length-1));
+            for (var path of paths){
+                menus = menus[path];
+            }
+        }
+        var menu = document.createElement("div");
+        menu.className = "interface menu";
+        menu.id = "menu" + menus._title
+        var title_element = document.createTextNode(menus._title);
+        menu.appendChild(title_element);
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+        document.body.appendChild(menu)
+        var title_height = document.createRange();//
+        title_height.selectNodeContents(title_element);
+        title_height = title_height.getBoundingClientRect().height;
+
+        var optionList = Object.getOwnPropertyNames(menus).filter(function(opt) {return !opt.startsWith("_")});
+        for (var i = 0; i < optionList.length; i++) {
+            var option = document.createElement("div");
+            option.className = "option"
+            option.index = i;
+            let current_option = optionList[i];
+            let callback = menus[current_option];
+            let action_callback = callback.callback;
+            let that = this;
+            if (action_callback !== undefined) {
+                let onclick_callback = function () {
+                    action_callback.apply(that.realObject);
+                    that.closeMenu();
+                    return false;
+                };
+                option.onclick = onclick_callback;
+                let onhover_callback = function (event) {
+                    that.closeOtherPaths(paths);
+                }
+                option.onhover = onhover_callback;
+
+            }else{
+                let onhover_callback = function (event) {
+                    // console.log("################ event: ", event.target.clientHeight*event.target.index , title_height )
+                    let menu_x = Number.parseInt(menu.style.left.replace("px","")) + menu.clientWidth;
+                    let menu_y = Number.parseInt(menu.style.top.replace("px","")) + title_height + event.target.clientHeight*event.target.index;
+                    that.createMenu(paths.concat([current_option]), menu_x, menu_y);
+                };
+                option.onhover = onhover_callback;
+                // console.log("HOVER Callback: " , onhover_callback, ' object: ' , this.realObject)
+            }
+
+            // console.log("Callback: " , action_callback, ' object: ' , this.realObject)
+
+            let node = document.createTextNode(current_option);
+            option.appendChild(node);
+            menu.appendChild(option);
+            option.id = "option" + current_option
+
+        }
+        menu.appendChild(this.createCancelOption())
+        menus._node = menu;
+        this.mabyeMoveMenus(menu)
+        return menu;
+    }
+    mabyeMoveMenus(menu){
+        var bottom = Number.parseInt(menu.style.top.replace("px","")) + menu.clientHeight;
+        var right = Number.parseInt(menu.style.left.replace("px","")) + menu.clientWidth;
+        if(bottom > window.innerHeight){
+            this.moveMenus(0,window.innerHeight - bottom - 10);
+        }
+        if(right > window.innerWidth){
+            this.moveMenus(window.innerWidth - right - 10, 0);
+        }
+    }
+    moveMenus(x, y, menus = this.menus){
+        var menu = menus._node;
+        if(menu){
+            let style = menu.style;
+            // console.log("BEFORE: ",menus._node.style.cssText)
+            style.top = (Number.parseInt(style.top.replace("px","")) + y) + "px";
+            style.left = (Number.parseInt(style.left.replace("px","")) + x) + "px";
+            menus._node.style.cssText = style.cssText;
+            // console.log("AFTER: ", menus._node.style.cssText)
+            menus._node.style.display='none';
+            menus._node.offsetHeight; // no need to store this anywhere, the reference is enough
+            menus._node.style.display='';
+            var optionList = Object.getOwnPropertyNames(menus).filter(function(opt) {return !opt.startsWith("_")});
+            // console.log("Moved: ", menu, " (", x, y, ")", " --> ", optionList)
+            for(var sub_menus of optionList){
+                this.moveMenus(x, y, menus[sub_menus]);
+            }
+
+        }
+    }
+    closeMenu() {
+        do {
+            var open_menus = document.getElementsByClassName("interface menu");
+            for (var menu of open_menus) {
+                document.body.removeChild(menu);
+            }
+        }  while(open_menus.length > 0);
+    }
+    closeOtherPaths(paths){
+        var menus = this.menus;
+        if(paths.length > 0){
+            for (var path of paths){
+                menus = menus[path];
+            }
+        }
+        var optionList = Object.getOwnPropertyNames(menus).filter(function(opt) {return !opt.startsWith("_")});
+        for (var i = 0; i < optionList.length; i++) {
+            if(menus[optionList[i]]._node !== null && menus[optionList[i]]._node !== undefined){
+                // console.log("Removing : ", menus[optionList[i]]._node, "from path: ", paths , optionList[i])
+                document.body.removeChild(menus[optionList[i]]._node);
+                delete menus[optionList[i]]._node;
+            }
+        }
+    }
+
+    createCancelOption(){
+        var cancel = document.createElement("div");
+        cancel.className = "option"
+        cancel.id = "optionCancel"
+        var that = this;
+        let cancel_function = function () {
+            that.closeMenu();
+            return false;
+        };
+        cancel.onclick = cancel_function;
+        var cancel_node = document.createTextNode('Cancel');
+        cancel.appendChild(cancel_node);
+        return cancel;
+    }
+}
 
 
 const raycaster = new THREE.Raycaster()
 const mouse = {polar: new THREE.Vector2(), cartesian: new THREE.Vector2(), event:"none"};
-
-
+var menuManager = new MenuManager();
 function onMouseMove( event ) {
     mouse.cartesian.x = event.clientX;
     mouse.cartesian.y = event.clientY;
@@ -20,14 +192,23 @@ function onMouseMove( event ) {
     raycaster.setFromCamera( mouse.polar, window.camera );
 
     // CLOSE MENU
-    let menu = document.getElementById("menu");
-    let left = Number(menu.style.left.replace('px', ''));
-    let top = Number(menu.style.top.replace('px', ''));
-    if (menu.style.display === 'unset' &&
-        (mouse.cartesian.x < left - 10 || mouse.cartesian.x > left + menu.offsetWidth + 10 ||
-            mouse.cartesian.y < top - 10 || mouse.cartesian.y > top + menu.offsetHeight + 10)) {
-        closeMenu();
+    let open_menus = document.getElementsByClassName("interface menu");
+    let close = true;
+    for(var menu of open_menus){
+        let left = Number(menu.style.left.replace('px', ''));
+        let top = Number(menu.style.top.replace('px', ''));
+        if (!(mouse.cartesian.x < left - 10 || mouse.cartesian.x > left + menu.offsetWidth + 10 ||
+                mouse.cartesian.y < top - 10 || mouse.cartesian.y > top + menu.offsetHeight + 10)) {
+            close = false;
+        }
     }
+    if(close) {
+        menuManager.closeMenu();
+    }else {
+        menuManager.navigateMenu(event);
+    }
+
+
 
     // MOVE OBJECTS
     deployer.grid && deployer.grid.onMouseMove(raycaster);
@@ -55,8 +236,7 @@ function onLeftClick(mouse){
     //OPEN MENU
     var object3DList = getInterceptingObjectList();
     if(allInterfacesClosed() && (deployer.grid === undefined || deployer.grid.object.active === false) && object3DList.length > 0){
-        var options = object3DList[0].actions;
-        showMenu(mouse, object3DList[0], options)
+        menuManager.showMenu(mouse, object3DList[0])
     }
 }
 function onRender(){
@@ -83,7 +263,7 @@ function getInterceptingObjectList() {
     // SETUP OBJECTS TO BE INTERCEPTED
     var all_meshes = [];
     var new_meshes = scene.children.filter(function (element) {
-        return  deployer.grid === undefined || element !== deployer.grid.mesh;
+        return deployer.grid === undefined || element !== deployer.grid.mesh;
     });
     while (new_meshes.length > 0){
         var childs = [];
@@ -124,57 +304,9 @@ function setInterfaceText(identifier, newText){
 }
 
 function allInterfacesClosed(){
-    let menu = document.getElementById("menu");
+    let menu = document.getElementsByClassName("interface menu");
     let editorpanel = document.getElementById("editorpanel");
-    return menu.style.display !== 'unset' && editorpanel.style.display !== 'flex';
-}
-
-function showMenu(mouse, realObject, options) {
-    let title = realObject.common_name;
-    let menu = document.getElementById("menu");
-    menu.innerHTML = '';
-
-    menu.appendChild(document.createTextNode(title));
-
-    menu.style.display = "unset";
-    menu.style.left = mouse.cartesian.x + "px";
-    menu.style.top = mouse.cartesian.y + "px";
-
-    let optionList = Object.getOwnPropertyNames(options);
-    for (var i = 0; i < optionList.length; i++) {
-        var option = document.createElement("div");
-        option.className = "option"
-        option.id = "option" + i
-        let callback = options[optionList[i]].apply(realObject);
-        if (callback !== null) {
-            let callback_function = function () {
-                callback.apply(realObject);
-                closeMenu();
-                return false;
-            };
-            // console.log("Callback: " , callback, ' object: ' , realObject)
-            option.onclick = callback_function;
-            var node = document.createTextNode(optionList[i]);
-            option.appendChild(node);
-            menu.appendChild(option)
-        }
-    }
-    var cancel = document.createElement("div");
-    cancel.className = "option"
-    cancel.id = "option" + i
-    let cancel_function = function () {
-        closeMenu();
-        return false;
-    };
-    cancel.onclick = cancel_function;
-    var cancel_node = document.createTextNode('Cancel');
-    cancel.appendChild(cancel_node);
-    menu.appendChild(cancel)
-}
-
-function closeMenu() {
-    let menu = document.getElementById("menu");
-    menu.style.display = "none";
+    return menu.length === 0 && editorpanel.style.display !== 'flex';
 }
 
 function showTextEditor(realObject) {
@@ -222,10 +354,13 @@ function closeTextEditor() {
 // export default Exported;
 module.exports = {closeTextEditor,
     showTextEditor,
-    closeMenu,
-    showMenu,
+    closeMenu:menuManager.closeMenu,
+    showMenu:menuManager.showMenu,
     allInterfacesClosed,
     onMouseMove,
     onClick,
     onRender,
-    setInterfaceText};
+    setInterfaceText,
+    createMenu:menuManager.createMenu,
+    mouse,
+    menuManager};
