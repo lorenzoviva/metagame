@@ -179,22 +179,42 @@ class Object3D{
             this.childrens[children_names[i]].destroyer()
         }
     }
+    opt_relation_getter(object, prop){
+        var that = this;
+        return function (){
+            if(that.relations[prop] === undefined) return function (){
+                let positionGrid = that.getPositionGrid();
+                var position = new THREE.Vector3(positionGrid.x, positionGrid.y, positionGrid.z + 2);
+                var prop_object = deployer.importObject(object[prop], position, that.mesh.scale, scene, that.identifier + "." +prop );
+                deployer.importRelation(that, prop_object);
+            };
+            return null;
+
+        }
+    }
     objectSetup(){
         let depth = this.getDepth();
         // console.log("DEPTH: " + depth + " for  " + this.object );
         this.setupWatcher();
         if(depth < 1) {
             const excludes = ["watch", "unwatch"]
+            const includes = ["__proto__"]
             var sub_objects = Object.getOwnPropertyNames(this.object);
             for(var exclude of excludes){
                 if(sub_objects.includes(exclude)){
                     sub_objects.splice(sub_objects.indexOf(exclude),1)
                 }
             }
+            for(var include of includes){
+                if(this.object[include] !== undefined){
+                    sub_objects.push(include);
+                }
+            }
             // var sub_scale = this.mesh.geometry.parameters.width / (2 * sub_objects.length)
             var sub_scale = this.mesh.scale.x / (2 * sub_objects.length)
             for (var child_i = 0; child_i < sub_objects.length; child_i++) {
                 var sub_object = this.object[sub_objects[child_i]];
+                this.actions["Relations>Add " + "this." + sub_objects[child_i]] = this.opt_relation_getter(this.object, sub_objects[child_i])
                 // console.log("Spawning object child CLASS: ", this.constructor.name, " OBJECT: " + this.object + " MESH: ", this.mesh, " SUBS: " + child_i + "/"+sub_objects.length + " ("+sub_objects[child_i] + " = " + sub_object + ")")
                 let sub_object_position = new THREE.Vector3(-(this.mesh.scale.x / 2) + sub_scale * child_i * 2 + (sub_scale*0.5),-(sub_scale*0.5),-(sub_scale*0.5));
                 var sub_object3D =  deployer.importObject(sub_object, sub_object_position, new THREE.Vector3(sub_scale, sub_scale, sub_scale), this, sub_objects[child_i]);//
@@ -528,7 +548,7 @@ class Object3D{
 // class String3D extends Object3D{
 class Relation3D extends Object3D{
     constructor(link) {
-        //console.log("Creating relation, link:", link);
+        console.log("Creating relation, link:", link);
         let lineCurve = null;
         let v0 = link.from.getCenterPoint();
         let v1 = link.to.getCenterPoint();
