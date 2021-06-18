@@ -221,13 +221,13 @@ class Object3D{
                 this.childrens[sub_objects[child_i]] = sub_object3D;
             }
         }
-        if(this.parent !== scene){
-            try {
-                this.parent.object[this.identifier] = this.object;
-            }catch (e){
-                //not really important, other reference are defined. This only occurs on objects
-            }
-        }
+        // if(this.parent !== scene){
+        //     try {
+        //         this.parent.object[this.identifier] = this.object;
+        //     }catch (e){
+        //         //not really important, other reference are defined. This only occurs on objects
+        //     }
+        // }
     }
     setupWatcher(){
         if(this.object === null || this.object === undefined || !this.object instanceof Object ||  this.object.constructor.toString().indexOf('[native code]') > -1 ) return;
@@ -392,6 +392,7 @@ class Object3D{
         let positionGrid = this.getPositionGrid();
         positionGrid = new THREE.Vector3(positionGrid.x, positionGrid.y + 2, positionGrid.z);
         this.metaobject = deployer.importObject(this, positionGrid, new THREE.Vector3(1,1,1), scene, "metaobject")
+        deployer.importRelation(this, this.metaobject,"");
     }
     opt_getMetaClass(){
         if(this.metaclass === null) return this.getMetaClass;
@@ -401,6 +402,8 @@ class Object3D{
         let positionGrid = this.getPositionGrid();
         positionGrid = new THREE.Vector3(positionGrid.x - 2, positionGrid.y, positionGrid.z);
         this.metaclass = deployer.importObject(this.constructor, positionGrid, new THREE.Vector3(1,1,1), scene, "metaclass")
+        deployer.importRelation(this, this.metaclass);
+
     }
 
     async loadGLTFMesh(url){
@@ -728,7 +731,8 @@ class Code3D extends Object3D{
         }
         let position = new THREE.Vector3(this.getPositionGrid().x,this.getPositionGrid().y,this.getPositionGrid().z);
         let scale = new THREE.Vector3(1,1,1);
-        deployer.importObject(result, position, scale, scene, "deployer.objects['" + this.name + "'].execute()" );
+        var output = deployer.importObject(result, position, scale, scene, "deployer.objects['" + this.name + "'].execute()" );
+        deployer.importRelation(this, output, "");
     }
 
 
@@ -947,6 +951,27 @@ class Function3D extends Code3D{
         code = classes.Code.createCode(code);
         code = classes.Code.cutHeadNode(code)
         super(code, parent, identifier);
+    }
+    objectSetup() {
+        var sub_objects = this.object.node.params;
+        var sub_scale = 1 / (2 * sub_objects.length)
+        for (var child_i = 0; child_i < sub_objects.length; child_i++) {
+            var sub_object = this.object.node.params[child_i];
+            console.log("ADDING PARAMETER:", sub_object)
+            var code = new classes.Code(sub_object.code, sub_object)
+    //         // this.actions["Relations>Add " + "this." + sub_objects[child_i]] = this.opt_relation_getter(this.object, sub_objects[child_i])
+    //         // console.log("Spawning object child CLASS: ", this.constructor.name, " OBJECT: " + this.object + " MESH: ", this.mesh, " SUBS: " + child_i + "/"+sub_objects.length + " ("+sub_objects[child_i] + " = " + sub_object + ")")
+            let sub_object_position = new THREE.Vector3(sub_scale * child_i * 2 + (sub_scale*0.5),-(sub_scale*0.5),-(sub_scale*0.5));
+            var sub_object3D =  deployer.importObject(code, sub_object_position, new THREE.Vector3(sub_scale, sub_scale, sub_scale), scene, sub_objects[child_i]);//
+            this.childrens[sub_objects[child_i]] = sub_object3D;
+        }
+        // if(this.parent !== scene){
+        //     try {
+        //         this.parent.object[this.identifier] = this.object;
+        //     }catch (e){
+        //         //not really important, other reference are defined. This only occurs on objects
+        //     }
+        // }
     }
 }
 class Module3D extends Code3D{

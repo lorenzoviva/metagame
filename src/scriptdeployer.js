@@ -139,7 +139,6 @@ class GlobalDeployer{
         module_obj[url] = codeblock;
         return codeblock;
     }
-
     importCodeFromModules(modules){
         let modules_urls = Object.getOwnPropertyNames(modules);
         for (var module_i = 0; module_i < modules_urls.length; module_i++){
@@ -160,8 +159,8 @@ class GlobalDeployer{
             codeblock.setPositionGrid(code_position);
             //console.log("Importing instruction n°: " + instruction_i, codeblock)
             var link = this.importRelation(module3D, codeblock)
-            var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i])
-            var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent())
+            var code_relation_forward = new classes.CodeRelation(codeblock, module3D, codeblock.object, module3D.object.fc_child[instruction_i])
+            var code_relation_backward = new classes.CodeRelation(module3D, codeblock, module3D.object, codeblock.object.getFirstObject3DParent())
             link.code.push(code_relation_forward);
             link.code.push(code_relation_backward);
         }
@@ -226,26 +225,6 @@ class GlobalDeployer{
             return {};
         }
     }
-    // getAllMesh(){
-    //     var identifiers = Object.getOwnPropertyNames(this.objects);
-    //     var result = [];
-    //     for (var i = 0; i < identifiers.length; i++){
-    //         result.push(this.objects[identifiers[i]].mesh);
-    //         if (this.objects[identifiers[i]].mesh instanceof THREE.OpenCubeMesh){
-    //             result.push(...this.objects[identifiers[i]].mesh.children);
-    //         }
-    //     }
-    //     return result;
-    // }
-    // getMeshes(object){
-    //     var meshes = [];
-    //     if (object.mesh instanceof THREE.OpenCubeMesh){
-    //         result.push(
-    //     }else{
-    //
-    //     }
-    // }
-
     importObject(object, position, scale=new THREE.Vector3(1,1,1), parent=scene, identifier="", type=classes.Object3D.constructor){
         // console.log("Deploy object: ", object, " at: ", position )
         if(parent === scene){
@@ -272,7 +251,7 @@ class GlobalDeployer{
         var object = this;
         var object3D = null;
         if(type !== classes.Object3D.constructor){
-            object3D = type();
+            object3D = new type(object, parent, identifier);
             object3D.setObject(object);
             object3D.setPositionGrid(position)
         }else{
@@ -372,7 +351,6 @@ class GlobalDeployer{
     importGrid(object={size: 40, orientation: "xz"}){
         this.grid = new classes.Grid3D(object);
     }
-
     importFromIdentifier(identifier, position = new THREE.Vector3(0,0,0)){
         var module = searchInContext("this['" + identifier + "']", this.modules);
         if(module !== undefined){
