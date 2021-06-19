@@ -257,7 +257,7 @@ class GlobalDeployer{
         }else{
             var objectType = deployer.getObject3DType(object)
             try{
-                console.log("try creating: ",objectType, parent);
+                // console.log("try creating: ",objectType, parent);
                 if(objectType === classes.Object3D.name){
                     let color = new classes.Color().randomLight();
                     let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':identifier),"rgb(0,0,0)", color, true) });
@@ -266,7 +266,7 @@ class GlobalDeployer{
                     var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
                     // console.log("constructing: ",objectType, object, parent, identifier, mesh);
                     object3D = new deployer.classes[objectType](object, parent, identifier, mesh, objectType, objectType,{},{},[]);
-                       console.log("constructing: ",objectType, object3D);
+                       // console.log("constructing: ",objectType, object3D);
                 }else{
                     object3D = new deployer.classes[objectType](object, parent, identifier);
                      // console.log("constructing: ",objectType, object3D);
@@ -299,7 +299,7 @@ class GlobalDeployer{
 
                     Object.defineProperty (C, 'name', {value: objectType});
                     deployer.classes[objectType] = C;
-                    console.log("Created constructor for class: " + objectType+ ", restarting to3D...");
+                    // console.log("Created constructor for class: " + objectType+ ", restarting to3D...");
                     return deployer.to3D.apply(object, [position, scale,  parent, identifier]);
                 }else{
                     // e.constructor.prototype.to3D = to3D;

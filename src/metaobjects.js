@@ -40,16 +40,30 @@ class Object3D{
         this.setObject(object);
     }
     redraw(object, parent, identifier){
+        // if(parent && parent !== scene && identifier){
+        //     var newobj = {};
+        //     this.parent = parent;
+        //     this.identifier = identifier;
+        //     //dont use setObject
+        //     this.object = object;
+        //     newobj[this.identifier] = object;
+        //     return parent.redraw({...parent.object, ...newobj}, parent.parent, parent.identifier);
+        // }
         var g_pos = this.getPositionGrid();
         var i_pos = this.getPositionInternal();
+        var o_scale = this.mesh.scale;
         this.parent = parent;
         this.identifier = identifier;
         if(object?.getGenericMesh !== undefined){
             let mesh = object.getGenericMesh(parent, identifier);
+            mesh.scale.x = o_scale.x;
+            mesh.scale.y = o_scale.y;
+            mesh.scale.z = o_scale.z;
             this.setMesh(mesh);
             this.setObject(object);
             this.setPositionGrid(g_pos);
             this.setPositionInternal(i_pos);
+
         }else{
             var objectType = deployer.getObject3DType(object);
             let color = new classes.Color().randomLight();
@@ -57,6 +71,9 @@ class Object3D{
             let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':(object.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(object).serialize()):JSON.stringify(object.serialize()))),"rgb(0,0,0)" , color.darker(0.1), false, true) });
             let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType ,"rgb(0,0,0)" , color.lighter(0.2), true) } );
             let mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
+            mesh.scale.x = o_scale.x;
+            mesh.scale.y = o_scale.y;
+            mesh.scale.z = o_scale.z;
             this.setMesh(mesh);
             this.setObject(object);
             this.setPositionGrid(g_pos);
@@ -230,10 +247,11 @@ class Object3D{
         // }
     }
     setupWatcher(){
-        if(this.object === null || this.object === undefined || !this.object instanceof Object ||  this.object.constructor.toString().indexOf('[native code]') > -1 ) return;
-        console.log("s setupWatcher: " , this.object)
+        // console.log("s setupWatcher?: " , this.object)
+        if(this.object === null || this.object === undefined || !this.object instanceof Object ||  this.object.constructor.toString().indexOf('[native code]') > -1 || this.object instanceof THREE.Mesh) return;
+        // console.log("yes setupWatcher: " , this.object)
         if (!this.object.watch) {
-            console.log("!this.object.watch: " , this.object.watch)
+            // console.log("!this.object.watch: " , this.object.watch)
 
             const that = this;
             this.object.watch = function (prop, handler) {
@@ -259,12 +277,18 @@ class Object3D{
                     }
                 }
             };
-            console.log("s watching: " , this.object)
+            // console.log("s watching: " , this.object)
 
             for(var prop of Object.getOwnPropertyNames(this.object)){
-                console.log("watching: " , prop)
-                if(prop !== "watch" && prop !== "unwatch")
-                this.object.watch(prop, that.onObjectExternalEdit)
+                // console.log("watching: " , prop)
+                if(prop !== "watch" && prop !== "unwatch"){
+                    try {
+                        // console.log("onObjectExternalEdit OBJECT: ", that.constructor, that.onObjectExternalEdit)
+                        this.object.watch(prop, that.onObjectExternalEdit)
+                    }catch (e){
+                        console.log("Error while trying to watch prop: " + prop +" : ", e)
+                    }
+                }
             }
         }
         // object.unwatch
@@ -277,12 +301,25 @@ class Object3D{
         }
     }
     onObjectExternalEdit(new_object, property, old_value, new_value){
-        console.log("external edit: ",this, new_object, property,old_value, new_value)
-        for(var prop of Object.getOwnPropertyNames(new_object)){
-            console.log("Prop: ", prop, " value: ", new_object[prop])
+        // console.log("external edit: ",this, new_object, property,old_value, new_value)
+        // for(var prop of Object.getOwnPropertyNames(new_object)){
+        //     console.log("Prop: ", prop, " value: ", new_object[prop])
+        // }
+        if(new_value !== old_value){
+            console.log("OLD: ", old_value, "NEW: ", new_value, " THIS: ", this, " IDENTIFIER: ", this.identifier, "this.object[prop]: ", this.object[property], " Property: ", property)
+            if(this.parent && this.parent !== scene) {
+                // var new_prop = {};
+                // new_prop[this.identifier] = new_object
+                // this.parent.redraw({...this.parent.object,...new_prop}, this.parent.parent, this.parent.identifier);
+
+                if(this.parent.object[this.identifier] !== this.object && this.identifier !== "mesh" && property !== "mesh")
+                this.parent.object[this.identifier] = this.object;
+                // this.parent.redraw(new_prop, this.parent.parent, this.parent.identifier);
+            }else{
+                this.redraw(new_object, this.parent, this.identifier);
+            }
+
         }
-        if(new_value !== old_value)
-        this.redraw(new_object, this.parent, this.identifier);
         return new_value;
     }
 
@@ -393,6 +430,7 @@ class Object3D{
         positionGrid = new THREE.Vector3(positionGrid.x, positionGrid.y + 2, positionGrid.z);
         this.metaobject = deployer.importObject(this, positionGrid, new THREE.Vector3(1,1,1), scene, "metaobject")
         deployer.importRelation(this, this.metaobject,"");
+        console.log("Creating metaobject", this, this.metaobject)
     }
     opt_getMetaClass(){
         if(this.metaclass === null) return this.getMetaClass;
@@ -543,15 +581,11 @@ class Object3D{
         }
     }
 }
-// class Scene3D extends Object3D{
-//     constructor() {
-//         super();
-//     }
-// }
+
 // class String3D extends Object3D{
 class Relation3D extends Object3D{
     constructor(link) {
-        console.log("Creating relation, link:", link);
+        // console.log("Creating relation, link:", link);
         let lineCurve = null;
         let v0 = link.from.getCenterPoint();
         let v1 = link.to.getCenterPoint();
@@ -685,8 +719,6 @@ class Code3D extends Object3D{
             this.dependencies[dependency] = null;
         }
         this.object.object3D = this;
-
-
     }
 
     editableText(){
@@ -709,7 +741,7 @@ class Code3D extends Object3D{
             // }
         }
 
-        this.redraw(editedCodeObject)
+        this.redraw(editedCodeObject, this.parent, this.identifier)
     }
     redraw(object, parent, identifier) {
         this.setObject(object);
@@ -731,7 +763,9 @@ class Code3D extends Object3D{
         }
         let position = new THREE.Vector3(this.getPositionGrid().x,this.getPositionGrid().y,this.getPositionGrid().z);
         let scale = new THREE.Vector3(1,1,1);
+        console.log("EXECUTE: " , scene)
         var output = deployer.importObject(result, position, scale, scene, "deployer.objects['" + this.name + "'].execute()" );
+        console.log("EXECUTED: " , scene)
         deployer.importRelation(this, output, "");
     }
 
@@ -966,7 +1000,7 @@ class Function3D extends Code3D{
             code3D.mesh.scale.x = sub_scale;
             code3D.mesh.scale.y = sub_scale;
             code3D.mesh.scale.z = sub_scale;
-            console.log("SCALE:", sub_scale, this.mesh.scale, sub_objects.length )
+            // console.log("SCALE:", sub_scale, this.mesh.scale, sub_objects.length )
             this.childrens[identifier.node.name] = code3D;
             code3D.put(this)
         }
@@ -1137,8 +1171,21 @@ class Undefined3D extends Object3D{
         super(object, parent, identifier, mesh);
     }
 }
+class Scene3D extends Code3D{
+    constructor(object, parent, identifier ) {
+        deployer.setGenericMeshGetter(object, Scene3D.constructor.name);
+        super(new classes.Code("scene"), parent, "scene");//, object.getGenericMesh(parent, "scene"), Scene3D.constructor.name, Scene3D.constructor.name, {},{},[]);
+
+    }
+    onObjectExternalEdit(new_object, property, old_value, new_value){
+        console.log("Scene3D.external edit: ",this, new_object, property,old_value, new_value)
+
+        // dont do a thing
+    }
+}
 classes.Null3D = Null3D;
 classes.Undefined3D = Undefined3D;
+classes.Scene3D = Scene3D;
 
 classes.Code3D = Code3D;
 classes.Function3D = Function3D;

@@ -1,4 +1,5 @@
 function f(a, b){
     return a+b;
 }
-f
+var x = {l:f, a:2}
+x
