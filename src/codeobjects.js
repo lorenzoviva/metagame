@@ -212,7 +212,9 @@ class Code{
         }
     }
     jsToAST(node, code, parent=null){
+        // console.log(5, node, node.code, code)
         node.code = code.substr(node.start, node.end-node.start)
+        // console.log(6, node, node.code, code)
         this.node = node
         this.child = [];
         this.type = node.type;

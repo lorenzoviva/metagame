@@ -342,6 +342,7 @@ class GlobalDeployer{
                     strRepresentation = "" + this;
                 }
             }
+            if(!strRepresentation)strRepresentation="\"\""
             let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(strRepresentation, "rgb(0,0,0)" , color.darker(0.1), false, true) });
             let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType,"rgb(0,0,0)" , color.lighter(0.2), true) } );
             var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material])

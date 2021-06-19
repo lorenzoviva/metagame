@@ -2,7 +2,7 @@ var GLTFLoader = require("three-gltf-loader");
 require("./custommesh.js");
 var classes = require("./codeobjects.js");
 let geval = this.execScript || eval;
-
+let delta = 0.00001;
 
 class Object3D{
     name = "";
@@ -951,27 +951,25 @@ class Function3D extends Code3D{
         code = classes.Code.createCode(code);
         code = classes.Code.cutHeadNode(code)
         super(code, parent, identifier);
-    }
-    objectSetup() {
-        var sub_objects = this.object.node.params;
-        var sub_scale = 1 / (2 * sub_objects.length)
+        let node = this.object.node;
+        var sub_objects = node.params;
+        var sub_scale = this.mesh.scale.x / (2 * sub_objects.length)
         for (var child_i = 0; child_i < sub_objects.length; child_i++) {
-            var sub_object = this.object.node.params[child_i];
-            console.log("ADDING PARAMETER:", sub_object)
-            var code = new classes.Code(sub_object.code, sub_object)
-    //         // this.actions["Relations>Add " + "this." + sub_objects[child_i]] = this.opt_relation_getter(this.object, sub_objects[child_i])
-    //         // console.log("Spawning object child CLASS: ", this.constructor.name, " OBJECT: " + this.object + " MESH: ", this.mesh, " SUBS: " + child_i + "/"+sub_objects.length + " ("+sub_objects[child_i] + " = " + sub_object + ")")
-            let sub_object_position = new THREE.Vector3(sub_scale * child_i * 2 + (sub_scale*0.5),-(sub_scale*0.5),-(sub_scale*0.5));
-            var sub_object3D =  deployer.importObject(code, sub_object_position, new THREE.Vector3(sub_scale, sub_scale, sub_scale), scene, sub_objects[child_i]);//
-            this.childrens[sub_objects[child_i]] = sub_object3D;
+            var sub_object = node.params[child_i];
+            // console.log("ADDING PARAMETER:", sub_object)
+            var identifier = classes.Code.createCode(node.code, sub_object, this.object)
+            var code3D = new classes.Code3D(identifier, this, identifier.node.name);
+            // console.log("CREATED CODE3d: ", code3D)
+            let sub_object_position = new THREE.Vector3(sub_scale - (this.mesh.scale.x * 0.5) + sub_scale * child_i * 2, (sub_scale * 0.5) - this.mesh.scale.y * 0.5 + delta,(sub_scale * 0.5) + (this.mesh.scale.z * 0.5) - (sub_scale) + delta);
+            code3D.setPositionGrid(this.getPositionGrid())
+            code3D.setPositionInternal(sub_object_position)
+            code3D.mesh.scale.x = sub_scale;
+            code3D.mesh.scale.y = sub_scale;
+            code3D.mesh.scale.z = sub_scale;
+            console.log("SCALE:", sub_scale, this.mesh.scale, sub_objects.length )
+            this.childrens[identifier.node.name] = code3D;
+            code3D.put(this)
         }
-        // if(this.parent !== scene){
-        //     try {
-        //         this.parent.object[this.identifier] = this.object;
-        //     }catch (e){
-        //         //not really important, other reference are defined. This only occurs on objects
-        //     }
-        // }
     }
 }
 class Module3D extends Code3D{
