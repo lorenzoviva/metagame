@@ -306,7 +306,7 @@ class Object3D{
         //     console.log("Prop: ", prop, " value: ", new_object[prop])
         // }
         if(new_value !== old_value){
-            console.log("OLD: ", old_value, "NEW: ", new_value, " THIS: ", this, " IDENTIFIER: ", this.identifier, "this.object[prop]: ", this.object[property], " Property: ", property)
+            // console.log("OLD: ", old_value, "NEW: ", new_value, " THIS: ", this, " IDENTIFIER: ", this.identifier, "this.object[prop]: ", this.object[property], " Property: ", property)
             if(this.parent && this.parent !== scene) {
                 // var new_prop = {};
                 // new_prop[this.identifier] = new_object
@@ -356,8 +356,15 @@ class Object3D{
             try {
                 deserializable = JSON.parse(text);
             } catch (e) {}
+            console.log("TEXT: ", text)
+            console.log("DESERIALIZABLE: ", deserializable, deserializable.type)
             var deserialized = deployer.classes.ObjectWrapper.deserialize(deserializable);
+            console.log("DESERIALIZED: ", deserialized)
+            if(this.parent && this.parent !== scene) {
+                this.parent.object[this.identifier] = deserialized;
+            }
             this.redraw(deserialized, this.parent, this.identifier)
+
 
             // this.setObject(deserialized)
 
@@ -1183,6 +1190,7 @@ class Scene3D extends Code3D{
         // dont do a thing
     }
 }
+
 classes.Null3D = Null3D;
 classes.Undefined3D = Undefined3D;
 classes.Scene3D = Scene3D;

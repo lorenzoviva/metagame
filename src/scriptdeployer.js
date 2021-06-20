@@ -283,7 +283,7 @@ class GlobalDeployer{
                 // realObject.setObject(object)
             } catch (e) {
                 if(e instanceof TypeError){
-                    console.log("Creating constructor for class: " + objectType+ " parent:",  parent, " object: " , object , " error: ", e);
+                    // console.log("Creating constructor for class: " + objectType+ " parent:",  parent, " object: " , object , " error: ", e);
                     var depth = 0;
                     var node = parent;
                     while (node !== scene){
