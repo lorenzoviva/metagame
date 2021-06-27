@@ -1,4 +1,5 @@
 const {LooseParser} = require('acorn-loose');
+const {tokTypes, tokenizer} = require('acorn');
 // const cloneDeep = require('lodash/fp/cloneDeep');
 // const classFields = require('acorn-class-fields');
 // const walk = require("acorn-walk")
@@ -114,9 +115,19 @@ class Code{
         }
         var root = node;
         if(node === null){
-            root = LooseParser.parse(text_code);//extend(classFields)
+            this.tokens  = [];
+            let options = {onComment: this.tokens,
+                           onToken: this.tokens,
+                           start: Number,
+                           end: Number,
+                           range: [Number, Number]};
+            root = LooseParser.parse(text_code, options);//extend(classFields)
         }
-        // console.log("parsed: ", root);
+        // if(!parent) {
+        //     this.getTokens(text_code);
+        //     console.log("tokens: ", this.tokens);
+        // }
+        // console.log("parsed: ",root);
         this.jsToAST(root, text_code, parent);
         // console.log("AST: ", this);
         this.ASTToFlowChart();
@@ -135,7 +146,17 @@ class Code{
         }
 
     }
-
+    static getTokens(text_code){
+        var tokens = [];
+        let options = {onComment: tokens,
+                       onToken: tokens,
+                       start: Number,
+                       end: Number,
+                       range: [Number, Number]};
+        // var tokenBuffer = tokenizer(text_code, options);
+        LooseParser.parse(text_code, options);//extend(classFields)
+        return tokens;
+    }
     staticAnalisys(){
         this.sa_identifiers = {}
         for(var child_i = 0; child_i < this.child.length; child_i++){

@@ -55,6 +55,27 @@ body{
     font-size: 15px;
 
 }
+.javascript.keyword{
+    color: #9c5b03;
+    font-weight: bold;
+}
+.javascript.name{
+    color: #602776;
+    /*font-style: italic;*/
+}
+.javascript.string{
+    color: #574128;
+    font-weight: bold;
+}
+.javascript.number{
+    color: #3453ce;
+}
+.javascript.comment{
+    color: #2e8b1a;
+}
+.javascript.keyword.function{
+    font-style: italic;
+}
 .buttonpanel{
     padding: 0;
     display: flex;
@@ -76,15 +97,22 @@ body{
     background-color: #09306b;
     border: solid 1px #213a44;
 }
-.texteditorpanel>textarea{
-    box-sizing: border-box;
-    resize: none;
-    height: 100%;
-    width: 100%;
-}
 .texteditorpanel>.title{
     height: 26px;
     line-height: 20px;
+}
+#texteditor{
+    background: white;
+    color: black;
+    text-align: left;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    resize: none;
+    font-weight: normal;
+    padding: 5px;
+    font-family: monospace;
 }
 .menu>.option{
     background-color: white;

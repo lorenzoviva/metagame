@@ -1,6 +1,6 @@
 const clientserver = require('./clientserver.js');
 var classes = require('./metaobjects.js');
-
+var SyntaxHighlighterFactory = require('./syntaxHighlighting.js');
 class MenuManager {
     constructor() {
         this.menus = {}
@@ -309,19 +309,134 @@ function allInterfacesClosed(){
     return menu.length === 0 && editorpanel.style.display !== 'flex';
 }
 
-function showTextEditor(realObject) {
+
+class TextEditor{
+    constructor(object3D) {
+        this.textarea = document.createElement("div");
+        this.textarea.id = "texteditor";
+        this.textarea.type= "textarea";
+        this.textarea.contentEditable = "true";
+        this.syntaxHighlighter = SyntaxHighlighterFactory.create(object3D);
+        this.draw();
+        var that = this;
+        this.textarea.addEventListener("input", function(event) {
+            // console.log("Before changed text: ", that.syntaxHighlighter.mapText(that.textarea.innerText))
+            // console.log("Textarea edited:", event)
+            that.syntaxHighlighter.setText(that.syntaxHighlighter.mapText(that.textarea.innerText))
+            that.redraw();
+            // console.log("After changed text: ", that.syntaxHighlighter.mapText(that.textarea.innerText).substr(0,caret))
+            // console.log("input event fired", caret);
+        }, false);
+        // console.log("LINES:", lines)
+        // console.log("syntaxHighlighter", this.syntaxHighlighter)
+        // console.log("Editable text:" + editabletext, editabletext)
+
+    }
+    redraw(){
+        let lineNodes = this.textarea.childNodes;
+        let lines = this.syntaxHighlighter.getLines();
+        let setCaret = false;
+        let caretElement = null;
+        let caretPosition = 0;
+        for (var lineIndex = 0; lineIndex < lineNodes.length; lineIndex++){
+            if(!lineNodes[lineIndex].isEqualNode(lines[lineIndex])){
+                // console.log("redrawing: ", lines[lineIndex].outerHTML, "to" , lineNodes[lineIndex].outerHTML );
+                var caretRange = this.getCaretPosition(lineNodes[lineIndex])
+                lineNodes[lineIndex].outerHTML = lines[lineIndex].outerHTML;
+                if(caretRange > 0) {
+                    // console.log("CARET RANGE", caretRange)
+                    caretPosition = caretRange;
+                    caretElement = lineNodes[lineIndex];
+                    setCaret = true;
+                }
+            }
+        }
+        if(setCaret && caretElement && caretPosition > 0)this.setCaretPosition(caretElement,caretPosition)
+
+        // console.log("redrawn: ", redrawn);
+        return redrawn;
+    }
+    draw(){
+        this.textarea.innerHTML = ''
+        let lines =  this.syntaxHighlighter.getLines();
+        for( var line of lines ){
+            this.textarea.appendChild(line)
+        }
+    }
+    getNode(){
+        return this.textarea;
+    }
+
+    getCaretPosition(element) {
+        var caretOffset = 0;
+        var doc = this.textarea.ownerDocument || this.textarea.document;
+        var win = doc.defaultView || doc.parentWindow;
+        var sel = win.getSelection();
+        if (sel.rangeCount > 0) {
+            var range = win.getSelection().getRangeAt(0);
+            var preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(element);
+            // console.log("range", range.endContainer, range.endContainer.previousSibling, range.endContainer.nextSibling, range.endContainer.parentNode, range.endContainer.lastChild)
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            caretOffset = preCaretRange.toString().length;
+            // console.log("PRE-RANGE : ", preCaretRange, preCaretRange.startContainer, preCaretRange.endContainer," Offset: ", preCaretRange.startOffset, preCaretRange.endOffset)
+            // console.log("RANGE : ", range, range.startContainer, range.endContainer," Offset: ", range.startOffset, range.endOffset)
+        }
+        return caretOffset;
+    }
+    setCaretPosition(element, position) {
+        var range = document.createRange()
+        var sel = window.getSelection()
+        // console.log(document.getElementById("texteditor").innerText);
+        // console.log("elementOffset", elementOffset)
+        try {
+            var elementOffset = TextEditor.getNodeAt(element, position);
+            range.setStart(elementOffset.node, elementOffset.position)
+        }catch (error){
+            console.log("ERROR setCaretPosition: ", error,element, position, "  -->  " , element.nextSibling || element.parent.nextSibling, position - (element.innerText || element.textContent).length)
+            return this.setCaretPosition(element.nextSibling || element.parent.nextSibling, position - (element.innerText || element.textContent).length)
+        }
+        range.collapse(true)
+
+        sel.removeAllRanges()
+        sel.addRange(range)
+    }
+    static getNodeAt(node, position){
+        let sum = 0;
+        for (var childNode of node.childNodes){
+            let line = childNode.innerText?childNode.innerText:childNode.textContent
+            let lineLength = line.length;
+            // if(line === "\n"){
+            //     console.log("#SUM:" , sum, "pos:", position, "text", line, "linelenght: ", lineLength)
+            // }else
+            if(lineLength + sum < position){
+                sum += lineLength;
+                // console.log("SUM:" , sum, "pos:", position, "text", line, "linelenght: ", lineLength)
+            }else{
+                // console.log("FINAL SUM:" , sum, "pos:", position, "text",  line, "childs: ",  childNode.childNodes.length)
+                if(childNode.childNodes.length > 0){
+                    return TextEditor.getNodeAt(childNode, position - sum);
+                }else{
+                    return {node: childNode, position: position - sum}
+                }
+            }
+        }
+        return {node: node, position: position}
+    }
+}
+function showTextEditor(object3D) {
     let editorPanel = document.getElementById("editorpanel");
     editorPanel.innerHTML = '';
     editorPanel.style.display = "flex";
     var titlePanel = document.createElement("div");
     titlePanel.className = "title"
-    titlePanel.appendChild(document.createTextNode("Edit: " + realObject.name + " object"));
+    titlePanel.appendChild(document.createTextNode("Edit: " + object3D.name + " object"));
     var buttonPanel = document.createElement("div");
     buttonPanel.className = "interface topright buttonpanel"
     buttonPanel.appendChild(createButton("bluebutton", "\uD83D\uDCBE", function () {
-        let newtext = document.getElementById("texteditor").value;
+        let newtext = document.getElementById("texteditor").innerText;
         // console.log("Save code:", newCode);
-        realObject.editFromText(newtext);
+        object3D.editFromText(newtext);
         return false;
     }));
     buttonPanel.appendChild(createButton("redbutton", "\u2718", function () {
@@ -330,12 +445,8 @@ function showTextEditor(realObject) {
     }));
     titlePanel.appendChild(buttonPanel)
     editorPanel.appendChild(titlePanel)
-    var textarea = document.createElement("textarea");
-    textarea.id = "texteditor";
-    let editabletext = realObject.editableText();
-    // console.log("Editable text:" + editabletext, editabletext)
-    textarea.appendChild(document.createTextNode(editabletext));
-    editorPanel.appendChild(textarea)
+    var textarea = new TextEditor(object3D);
+    editorPanel.appendChild(textarea.getNode())
 }
 
 function createButton(class_string, text, onclick) {
