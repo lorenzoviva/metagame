@@ -319,6 +319,7 @@ class TextEditor{
         this.syntaxHighlighter = SyntaxHighlighterFactory.create(object3D);
         this.draw();
         var that = this;
+        // REDRAWS EVERY INPUT (may be expensive for large code documents)
         this.textarea.addEventListener("input", function(event) {
             // console.log("Before changed text: ", that.syntaxHighlighter.mapText(that.textarea.innerText))
             // console.log("Textarea edited:", event)
@@ -328,33 +329,50 @@ class TextEditor{
             // console.log("input event fired", caret);
         }, false);
         // console.log("LINES:", lines)
-        // console.log("syntaxHighlighter", this.syntaxHighlighter)
+        console.log("syntaxHighlighter", this.syntaxHighlighter)
         // console.log("Editable text:" + editabletext, editabletext)
 
     }
     redraw(){
-        let lineNodes = this.textarea.childNodes;
+        let caret = this.getCaret();
         let lines = this.syntaxHighlighter.getLines();
-        let setCaret = false;
-        let caretElement = null;
-        let caretPosition = 0;
-        for (var lineIndex = 0; lineIndex < lineNodes.length; lineIndex++){
-            if(!lineNodes[lineIndex].isEqualNode(lines[lineIndex])){
-                // console.log("redrawing: ", lines[lineIndex].outerHTML, "to" , lineNodes[lineIndex].outerHTML );
-                var caretRange = this.getCaretPosition(lineNodes[lineIndex])
-                lineNodes[lineIndex].outerHTML = lines[lineIndex].outerHTML;
-                if(caretRange > 0) {
-                    // console.log("CARET RANGE", caretRange)
-                    caretPosition = caretRange;
-                    caretElement = lineNodes[lineIndex];
-                    setCaret = true;
-                }
-            }
-        }
-        if(setCaret && caretElement && caretPosition > 0)this.setCaretPosition(caretElement,caretPosition)
+        this.textarea.innerHTML = ''
+        for (var lineIndex = 0; lineIndex < lines.length; lineIndex++){
+            // console.log("redrawing: ", lines[lineIndex].outerHTML, "to" , lineNodes[lineIndex].outerHTML );
+            // lineNodes[lineIndex].outerHTML = lines[lineIndex].outerHTML;
+            this.textarea.appendChild(lines[lineIndex]);
 
-        // console.log("redrawn: ", redrawn);
-        return redrawn;
+        }
+        if(caret.startLine >= 0 && caret.startOffset >= 0) this.setCaretPosition(lines[caret.startLine],caret.startOffset)
+        // if(caret.line && caret.position >= 0) this.setCaretPosition(lines[caret.line],caret.position)
+    }
+    getCaret(){
+        var selection = window.getSelection();
+        var mapFunction = this.syntaxHighlighter.mapText;
+        function getPreviousLines(node, jump=false){
+            var lines = jump?"":mapFunction(node.innerText || node.textContent);
+            // console.log("Node: ", node, node.parentNode, node.previousSibling, lines)
+            if(!jump && node.parentNode.id === "texteditor" && !lines.includes("\n")) lines += "\n";
+            if(node.previousSibling) return  getPreviousLines(node.previousSibling) + lines;
+            if(node.parentNode.id !== "texteditor") return getPreviousLines(node.parentNode, true) + lines;
+            return lines;
+        }
+        let startNodePreText = getPreviousLines(selection.anchorNode, true);
+        let endNodePreText = getPreviousLines(selection.focusNode, true);
+
+        let startLineSplit = startNodePreText.split("\n");
+        let endLineSplit = endNodePreText.split("\n");
+
+        var caret = {}
+
+        caret.startLine = startLineSplit.length - 1;
+        caret.endLine = endLineSplit.length - 1;
+
+        caret.startOffset = startLineSplit[caret.startLine].length + selection.anchorOffset
+        caret.endOffset = startLineSplit[caret.startLine].length + selection.focusOffset
+
+        return caret
+
     }
     draw(){
         this.textarea.innerHTML = ''
@@ -367,23 +385,6 @@ class TextEditor{
         return this.textarea;
     }
 
-    getCaretPosition(element) {
-        var caretOffset = 0;
-        var doc = this.textarea.ownerDocument || this.textarea.document;
-        var win = doc.defaultView || doc.parentWindow;
-        var sel = win.getSelection();
-        if (sel.rangeCount > 0) {
-            var range = win.getSelection().getRangeAt(0);
-            var preCaretRange = range.cloneRange();
-            preCaretRange.selectNodeContents(element);
-            // console.log("range", range.endContainer, range.endContainer.previousSibling, range.endContainer.nextSibling, range.endContainer.parentNode, range.endContainer.lastChild)
-            preCaretRange.setEnd(range.endContainer, range.endOffset);
-            caretOffset = preCaretRange.toString().length;
-            // console.log("PRE-RANGE : ", preCaretRange, preCaretRange.startContainer, preCaretRange.endContainer," Offset: ", preCaretRange.startOffset, preCaretRange.endOffset)
-            // console.log("RANGE : ", range, range.startContainer, range.endContainer," Offset: ", range.startOffset, range.endOffset)
-        }
-        return caretOffset;
-    }
     setCaretPosition(element, position) {
         var range = document.createRange()
         var sel = window.getSelection()

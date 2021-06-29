@@ -55,6 +55,22 @@ body{
     font-size: 15px;
 
 }
+.json.key{
+    color: #097238;
+    /*font-style: italic;*/
+}
+.json.number{
+    color: #3453ce;
+}
+.json.string{
+    color: #574128;
+}
+.json.boolean{
+    color: #9c5b03;
+}
+.json.null{
+    color: #9c0303;
+}
 .javascript.keyword{
     color: #9c5b03;
     font-weight: bold;

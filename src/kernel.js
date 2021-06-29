@@ -168,7 +168,8 @@ function init() {
 
     deployer.importGrid();
     // deployer.import3DJSModule('/src/kernel.js')
-    deployer.import3DJSModule('/src/kernel.js');
+    // deployer.import3DJSModule('/src/kernel.js');
+    deployer.import3DJSModule('/src/playground.js');
 
     // window.selfSource = "";
     // clientserver.httpGet("https://localhost:8000/client.js", function f(data){ window.selfSource = data; });
