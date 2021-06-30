@@ -382,6 +382,34 @@ class GlobalDeployer{
         }
     }
 
+    getObject3D(){
+        return this.classes.Object3D;
+    }
+    getObject(name){
+        //BE CAREFUL WHEN REFACTORING (used in eval at metaobjects.js)
+        return this.objects[name]
+    }
+    removeRelation(relation){
+        delete this.relations[relation.name];
+        delete relation.object.from.relations[relation.name];
+        delete relation.object.to.relations[relation.name];
+    }
+    removeProgram(program){
+        delete this.programs[program.name];
+    }
+    removeObject(object){
+        delete this.objects[object.name];
+    }
+    addObject(object){
+        this.objects[object.name] = object;
+    }
+    addProgram(program){
+        this.programs[program.name] = program;
+    }
+    startMovingObjects(objects){
+        this.grid.object.active = true;
+        this.grid.object.placing = objects;
+    }
 }
 function searchInContext(js, context) {
     //# Return the results of the in-line anonymous function we .call with the passed context

@@ -67,9 +67,9 @@ class Object3D{
         }else{
             var objectType = deployer.getObject3DType(object);
             let color = new classes.Color().randomLight();
-            let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':identifier),"rgb(0,0,0)", color, true) });
-            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture((object === undefined || object === null ?'undefined':(object.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(object).serialize()):JSON.stringify(object.serialize()))),"rgb(0,0,0)" , color.darker(0.1), false, true) });
-            let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(objectType ,"rgb(0,0,0)" , color.lighter(0.2), true) } );
+            let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture((object === undefined || object === null ?'undefined':identifier),"rgb(0,0,0)", color, true) });
+            let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture((object === undefined || object === null ?'undefined':(object.serialize === undefined?JSON.stringify(new classes.ObjectWrapper(object).serialize()):JSON.stringify(object.serialize()))),"rgb(0,0,0)" , color.darker(0.1), false, true) });
+            let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture(objectType ,"rgb(0,0,0)" , color.lighter(0.2), true) } );
             let mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
             mesh.scale.x = o_scale.x;
             mesh.scale.y = o_scale.y;
@@ -101,7 +101,7 @@ class Object3D{
             this.parent.mesh.remove(this.mesh);
             delete this.parent.childrens[this.identifier];
         }
-        delete deployer.objects[this.name];
+        deployer.removeObject(this)
         let relation_names = Object.getOwnPropertyNames(this.relations);
         for (var r = 0; r < relation_names.length; r++){
             this.relations[relation_names[r]].destroyer();
@@ -111,7 +111,7 @@ class Object3D{
     setName(name){
         if (typeof name === 'string' && name.length > 0){
             this.name = name + "_" + THREE.MathUtils.generateUUID().replaceAll("-","_");
-            deployer.objects[this.name] = this;
+            deployer.addObject(this);
         }
     }
     show(){
@@ -374,8 +374,7 @@ class Object3D{
         return this.userMove;
     }
     userMove(){
-        deployer.grid.object.active = true;
-        deployer.grid.object.placing = this;
+        deployer.startMovingObjects(this);
     }
     move(grid, intersect){
         //console.log("moving: ", this)
@@ -425,7 +424,7 @@ class Object3D{
                 n++;
             }
         }catch (e) {}
-        geval("var temp" + n + " = deployer.objects."+this.name);
+        geval("var temp" + n + " = deployer.getObject('"+this.name+"')");
         console.log("temp" + n, geval("temp" + n))
     }
     opt_getMetaObject(){
@@ -612,9 +611,7 @@ class Relation3D extends Object3D{
         super( link, scene, link.identifier, mesh,  link.from.name+"-"+link.to.name,link.from.common_name+"-"+link.to.common_name,{},{},[]);
     }
     destroyer() {
-        delete deployer.relations[this.name];
-        delete this.object.from.relations[this.name];
-        delete this.object.to.relations[this.name];
+        deployer.removeRelation(this);
         super.destroyer();
     }
     updatePosition(){
@@ -701,14 +698,13 @@ class Code3D extends Object3D{
                 }
             }
         }
-        delete deployer.programs[this.name]
-
+        deployer.removeProgram(this);
         super.destroyer();
     }
     setName(name){
         super.setName(name)
         if (typeof this.name === 'string' && this.name.length > 0){
-            deployer.programs[this.name] = this;
+            deployer.addProgram(this);
         }
     }
 
@@ -847,8 +843,7 @@ class Code3D extends Object3D{
                 child.push(this.object.fc_child[i].object3D);
             }
         }
-        deployer.grid.object.active = true;
-        deployer.grid.object.placing = child;
+        deployer.startMovingObjects(child);
 
     }
     opt_moveParams(){
@@ -871,9 +866,7 @@ class Code3D extends Object3D{
                 child.push(this.object.fc_params[i].object3D);
             }
         }
-        deployer.grid.object.active = true;
-        deployer.grid.object.placing = child;
-
+        deployer.startMovingObjects(child);
     }
     opt_moveDependencies(){
         let dependencyURLList = this.object.dependencies;
@@ -897,8 +890,7 @@ class Code3D extends Object3D{
                 child.push(this.dependencies[dependencyURLList[dependency_i]]);
             }
         }
-        deployer.grid.object.active = true;
-        deployer.grid.object.placing = child;
+        deployer.startMovingObjects(child);
     }
 
 
@@ -1159,9 +1151,9 @@ class Null3D extends Object3D{
     constructor(object=null, parent = null, identifier = "null") {
         var color = new classes.Color(160,20,20);
         var textColor = new classes.Color(255,255,255);
-        let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(identifier,textColor, color, true) });
-        let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture("null",textColor , color.darker(0.1), false, true) });
-        let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(Null3D.name ,textColor , color.lighter(0.2), true) } );
+        let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture(identifier,textColor, color, true) });
+        let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture("null",textColor , color.darker(0.1), false, true) });
+        let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture(Null3D.name ,textColor , color.lighter(0.2), true) } );
         var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
         super(object, parent, identifier, mesh);
     }
@@ -1171,9 +1163,9 @@ class Undefined3D extends Object3D{
     constructor(object=undefined, parent = undefined, identifier = "undefined") {
         var color = new classes.Color(200,100,100);
         var textColor = new classes.Color(255,255,255);
-        let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(identifier,textColor, color, true) });
-        let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture("undefined",textColor , color.darker(0.1), false, true) });
-        let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.classes.Object3D.getTextTexture(Undefined3D.name ,textColor , color.lighter(0.2), true) } );
+        let side_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture(identifier,textColor, color, true) });
+        let darker_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture("undefined",textColor , color.darker(0.1), false, true) });
+        let text_material = new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: deployer.getObject3D().getTextTexture(Undefined3D.name ,textColor , color.lighter(0.2), true) } );
         var mesh = new THREE.OpenCubeMesh([null, text_material, null, darker_material, null, side_material]);
         super(object, parent, identifier, mesh);
     }
