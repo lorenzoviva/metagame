@@ -297,6 +297,7 @@ class Code{
     }
     static createCode(code, node = null, parent = null){
         if(node !== null){
+            // console.log("Creating code with type:", node.type)
             if(classes.hasOwnProperty(node.type)){
                 return new classes[node.type](code, node, parent);
             }

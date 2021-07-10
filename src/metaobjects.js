@@ -1004,6 +1004,12 @@ class Function3D extends Code3D{
             code3D.put(this)
         }
     }
+    redraw(object, parent, identifier) {
+        object = classes.Code.cutHeadNode(object)
+        this.setObject(object);
+        this.mesh.material = this.constructor.getTextMaterial(this);
+        this.mesh.draw();
+    }
 }
 class Module3D extends Code3D{
     constructor(module, parent=scene, identifier=""){

@@ -1,4 +1,5 @@
 var classes = require('./metaobjects.js');
+let delta = 0.00001;
 
 class GlobalDeployer{
     constructor(global_shift = new THREE.Vector3(0,0,0), inter_child_space =  new THREE.Vector3(2,0,0), inter_layer_space =  new THREE.Vector3(0,0,-2)){
@@ -382,6 +383,7 @@ class GlobalDeployer{
         }
     }
 
+
     getObject3D(){
         return this.classes.Object3D;
     }
@@ -410,6 +412,34 @@ class GlobalDeployer{
         this.grid.object.active = true;
         this.grid.object.placing = objects;
     }
+
+    // addChildObjects(object3D, sub_objects, positionFunction, scaleFunction){
+    //     var sub_scale = scaleFunction(object3D, sub_objects)//object3D.mesh.scale.x / (2 * sub_objects.length)
+    //     for (var child_i = 0; child_i < sub_objects.length; child_i++) {
+    //         var sub_object = object3D.object[sub_objects[child_i]];
+    //         object3D.actions["Relations>Add " + "object3D." + sub_objects[child_i]] = object3D.opt_relation_getter(object3D.object, sub_objects[child_i])
+    //         // console.log("Spawning object child CLASS: ", object3D.constructor.name, " OBJECT: " + object3D.object + " MESH: ", object3D.mesh, " SUBS: " + child_i + "/"+sub_objects.length + " ("+sub_objects[child_i] + " = " + sub_object + ")")
+    //         let sub_object_position = positionFunction(object3D, sub_scale, child_i)//new THREE.Vector3(-(object3D.mesh.scale.x / 2) + sub_scale * child_i * 2 + (sub_scale*0.5),-(sub_scale*0.5),-(sub_scale*0.5));
+    //         var sub_object3D =  deployer.importObject(sub_object, sub_object_position, new THREE.Vector3(sub_scale, sub_scale, sub_scale), object3D, sub_objects[child_i]);//
+    //         object3D.childrens[sub_objects[child_i]] = sub_object3D;
+    //     }
+    // }
+    // getHorizontalScaleFunction(){
+    //     return function(object3D, sub_objects){
+    //         return object3D.mesh.scale.x / (2 * sub_objects.length)
+    //     }
+    // }
+    // getCenteredHorizontalPositionFunction(){
+    //     return function(object3D, sub_scale, index){
+    //         return new THREE.Vector3(-(object3D.mesh.scale.x / 2) + sub_scale * index * 2 + (sub_scale*0.5),-(sub_scale*0.5),-(sub_scale*0.5));
+    //     }
+    // }
+    // getFrontBottomHorizontalPositionFunction(){
+    //     return function(object3D, sub_scale, index){
+    //         return new THREE.Vector3(sub_scale - (object3D.mesh.scale.x * 0.5) + sub_scale * index * 2, (sub_scale * 0.5) - object3D.mesh.scale.y * 0.5 + delta,(sub_scale * 0.5) + (object3D.mesh.scale.z * 0.5) - (sub_scale) + delta);
+    //     }
+    // }
+
 }
 function searchInContext(js, context) {
     //# Return the results of the in-line anonymous function we .call with the passed context
