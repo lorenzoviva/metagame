@@ -5,12 +5,13 @@ const interfaces = require('./interfaces.js')
 window.clientserver = require('./clientserver.js');
 const GlobalDeployer = require('./scriptdeployer.js')
 require("./clientutils.js")
+
 window.deployer = new GlobalDeployer();
+window.physics = require('./physics.js')
 window.geval = this.execScript || eval;
 window.interfaces = interfaces;
 window.metaobjects = deployer.classes;
 let camera, scene, renderer, camControls, clock;
-
 THREE.Vector3.prototype.getRotated = function(v){
     var res = new THREE.Vector3(this.x, this.y, this.z);
     res.applyAxisAngle(new THREE.Vector3( 1, 0, 0 ), v.x);
@@ -169,7 +170,9 @@ function init() {
     deployer.importGrid();
     // deployer.import3DJSModule('/src/kernel.js')
     // deployer.import3DJSModule('/src/kernel.js');
-    deployer.import3DJSModule('/src/playground.js');
+    var playgroundModule = deployer.import3DJSModule('/src/playground.js');
+    physics.addBox(playgroundModule);
+    physics.addPlane(deployer.grid); //
 
     // window.selfSource = "";
     // clientserver.httpGet("https://localhost:8000/client.js", function f(data){ window.selfSource = data; });
@@ -188,10 +191,11 @@ function init() {
 function render() {
     interfaces.onRender();
     var new_time = new Date()
-    let fps = 1000 / (new_time.getTime() - last_frame_time.getTime());
+    let delta_time = new_time.getTime() - last_frame_time.getTime();
+    let fps = 1000 / delta_time;
     if(fps > maxFPS){
         var minDelay = 1000 / maxFPS;
-        var delayRender = Math.ceil(minDelay - (new_time.getTime() - last_frame_time.getTime()));
+        var delayRender = Math.ceil(minDelay - delta_time);
         if(game_loop_timeout === null) game_loop_timeout = setTimeout(renderSync, delayRender);
     }else{
         renderSync();
@@ -199,7 +203,9 @@ function render() {
 }
 function renderSync(){
     var new_time = new Date()
-    let fps = 1000 / (new_time.getTime() - last_frame_time.getTime());
+    let delta_time = new_time.getTime() - last_frame_time.getTime();
+    if(physics) physics.onRender(delta_time);
+    let fps = 1000 / delta_time;
     interfaces.setInterfaceText("fpscounter", Math.ceil(fps) + " FPS")
     last_frame_time = new_time;
     renderer.render( scene, window.camera );
