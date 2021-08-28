@@ -1,13 +1,23 @@
 const clientserver = require('./clientserver.js');
 var classes = require('./metaobjects.js');
 var SyntaxHighlighterFactory = require('./syntaxHighlighting.js');
+
+
 class MenuManager {
     constructor() {
         this.menus = {}
 
     }
-
-    showMenu(mouse, realObject) {
+    showMenu(mouse, title, options) {
+        this.title = title;
+        this.options = options;
+        this.realObject = null;
+        this.setupFirstMenu();
+        this.createMenu([],  mouse.cartesian.x,  mouse.cartesian.y);
+        // console.log("this.menus: ",this.menus)
+    }
+    showObjectMenu(mouse, realObject) {
+        this.title = realObject.common_name
         this.realObject = realObject;
         this.options = realObject.actions;
         this.setupFirstMenu();
@@ -16,11 +26,11 @@ class MenuManager {
     }
     setupFirstMenu(){
         this.menus = {}
-        this.menus._title = this.realObject.common_name;
+        this.menus._title = this.title;
         let optionList = Object.getOwnPropertyNames(this.options);
         for (var i = 0; i < optionList.length; i++) {
             let callback = this.options[optionList[i]].apply(this.realObject);
-            if(callback === null)continue;
+            if(callback === null) continue;
             var splittedOption = optionList[i].split(">");
             var analyzedMenu = this.menus;
             for(var l = 0; l < splittedOption.length; l++){
@@ -230,13 +240,69 @@ function onClick( event ) {
     return false;
 }
 
+// function showAddObjectMenu(){
+//     // console.log("showAddObjectMenu")
+//     mouse.cartesian.x = 0; //document.querySelector("#addobject").offsetWidth;
+//     mouse.cartesian.y = document.querySelector("#addobject").offsetHeight;
+//     var objects = Object.getOwnPropertyNames(deployer.objects);
+//     var options = {}
+//     for(var clas of Object.getOwnPropertyNames(classes)){
+//         let oclass = clas;
+//         for(var object_name of objects){
+//             var object3D = deployer.objects[object_name]
+//             console.log("class: ", oclass, " object: ", object3D)
+//             if(object3D instanceof classes[oclass]){
+//                 console.log("isinstanceof")
+//                 options[clas + ">" + object3D.name] = function (){
+//                     return function(){
+//                         var block = new classes[oclass](object3D.object);
+//                         // var block = new classes[oclass]();
+//                         // block.setObject(object3D.object);
+//                         // block.redraw(object3D.object, block.parent, block.identifier)
+//                         // block.setMesh(object3D.mesh);
+//
+//                         console.log("Created block: ", oclass, classes[oclass], block);
+//                         block.put(scene);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     menuManager.showMenu(mouse, "Add object", options)
+//     // menuManager.showMenu(mouse, "Add object", {"test": function (){ return function(){ console.log("HELLO")}}})
+// }
+function showAddObjectMenu(){
+    // console.log("showAddObjectMenu")
+    mouse.cartesian.x = 0; //document.querySelector("#addobject").offsetWidth;
+    mouse.cartesian.y = document.querySelector("#addobject").offsetHeight;
+    var objects = Object.getOwnPropertyNames(deployer.objects);
+    var options = {}
+    for(var clas of Object.getOwnPropertyNames(classes)){
+        let oclass = clas;
+        for(var object_name of objects){
+            var object3D = deployer.objects[object_name]
+            if(object3D instanceof classes[oclass]) {
+                options[clas + ">" + object3D.name] = function (name) {
+                    return function () {
+                        return function () {
+                            deployer.importObject(deployer.objects[name].object, new THREE.Vector3(0,0,0))
+                        }
+                    }
+                }(object_name)
+            }
+        }
+    }
+    menuManager.showMenu(mouse, "Add object", options)
+    // menuManager.showMenu(mouse, "Add object", {"test": function (){ return function(){ console.log("HELLO")}}})
+}
+
 function onLeftClick(mouse){
     // STOP MOVING OBJECTS
     deployer.grid && deployer.grid.onLeftClick();
     //OPEN MENU
     var object3DList = getInterceptingObjectList();
     if(allInterfacesClosed() && (deployer.grid === undefined || deployer.grid.object.active === false) && object3DList.length > 0){
-        menuManager.showMenu(mouse, object3DList[0])
+        menuManager.showObjectMenu(mouse, object3DList[0])
     }
 }
 function onRender(){
@@ -467,7 +533,8 @@ function closeTextEditor() {
 module.exports = {closeTextEditor,
     showTextEditor,
     closeMenu:menuManager.closeMenu,
-    showMenu:menuManager.showMenu,
+    showMenu:menuManager.showObjectMenu,
+    showAddObjectMenu,
     allInterfacesClosed,
     onMouseMove,
     onClick,

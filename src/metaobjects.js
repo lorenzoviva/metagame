@@ -4,6 +4,8 @@ var classes = require("./codeobjects.js");
 let geval = this.execScript || eval;
 let delta = 0.00001;
 
+
+
 class Object3D{
     name = "";
     common_name = "";

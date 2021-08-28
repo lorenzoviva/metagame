@@ -243,6 +243,9 @@ class GlobalDeployer{
             objectType = "Undefined3D"
         }else if(object === null){
             objectType = "Null3D"
+        }else if(object instanceof classes.Code || object instanceof Function){
+            // newly added, check consistency
+            objectType = "Code3D"
         }else{
             objectType = object.constructor.name + "3D"
         }
