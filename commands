@@ -10,3 +10,5 @@ npm run build
 
 python pip
 python/venv/bin/pip install scipy scikit-image stl visdom
+
+$\s*console.log

@@ -8,7 +8,7 @@ class SyntaxHighlighter {
         return text.replaceAll("\n\n", "\n");
     }
     getNewLine(){
-        var line = document.createElement("div");
+        var line = document.createElement("pre");
         line.appendChild(document.createElement("br"));
         return line;
     }
@@ -21,10 +21,13 @@ class SyntaxHighlighter {
     static is(object){
 
     }
-    static formatText(text){
-        return text.replaceAll("\n","").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replaceAll(" ", "&nbsp");
+    static encodeText(text){
+        return text;
+        // return text.replaceAll("\n","").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replaceAll(" ", "&nbsp");
     }
-
+    // static decodeText(text){
+    //     return text;//.replaceAll("\n","").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replaceAll(" ", "&nbsp");
+    // }
 }
 
 
@@ -107,23 +110,23 @@ class JavascriptSyntaxHighlighter extends SyntaxHighlighter{
         if(lineText === ""){
             return this.getNewLine();
         }
-        var line = document.createElement("div");
+        var line = document.createElement("pre");
         var splittedTexts = []
         var splitIndex = 0;
         for (var token of lineTokens){
-            splittedTexts.push(JavascriptSyntaxHighlighter.formatText(lineText.substr(splitIndex,token.start - start  - splitIndex)));
+            splittedTexts.push(JavascriptSyntaxHighlighter.encodeText(lineText.substr(splitIndex,token.start - start  - splitIndex)));
             // console.log(lineText, token, lineText.substr(splitIndex ,token.start - start  - splitIndex))
             splitIndex = token.start - start;
             var tokenspan = document.createElement("span");
             for (var javascriptTokenFormatter of this.javascriptTokenFormatters){
                 if(javascriptTokenFormatter.is(token))javascriptTokenFormatter.format(token, tokenspan);
             }
-            tokenspan.innerHTML = JavascriptSyntaxHighlighter.formatText(lineText.substr(token.start - start ,token.end - token.start))
+            tokenspan.innerHTML = JavascriptSyntaxHighlighter.encodeText(lineText.substr(token.start - start ,token.end - token.start))
             splittedTexts.push(tokenspan);
             splitIndex = token.end - start;
 
         }
-        splittedTexts.push(JavascriptSyntaxHighlighter.formatText(lineText.substr(splitIndex,lineText.length - splitIndex)))
+        splittedTexts.push(JavascriptSyntaxHighlighter.encodeText(lineText.substr(splitIndex,lineText.length - splitIndex)))
         // console.log("splittedText:", splittedTexts)
 
         for(var splittedText of splittedTexts){
@@ -140,7 +143,7 @@ class JavascriptSyntaxHighlighter extends SyntaxHighlighter{
     static is(object){
         return object instanceof deployer.classes.Code;
     }
-    // static formatText(text){
+    // static encodeText(text){
     //     return text.replaceAll(" ", "&nbsp").replaceAll("\n"," ")
     // }
 }
@@ -208,21 +211,21 @@ class JSONSyntaxHighlighter extends SyntaxHighlighter {
         }
         // console.log("text: ", lineText, " tokens:", lineTokens)
 
-        var line = document.createElement("div");
+        var line = document.createElement("pre");
         var splittedTexts = []
         var splitIndex = 0;
         for (var token of lineTokens){
-            splittedTexts.push(JSONSyntaxHighlighter.formatText(lineText.substr(splitIndex,token.start - start  - splitIndex)));
+            splittedTexts.push(JSONSyntaxHighlighter.encodeText(lineText.substr(splitIndex,token.start - start  - splitIndex)));
             // console.log(lineText, token, lineText.substr(splitIndex ,token.start - start  - splitIndex))
             splitIndex = token.start - start;
             var tokenspan = document.createElement("span");
             tokenspan.className = token.cls;
-            tokenspan.innerHTML = JSONSyntaxHighlighter.formatText(lineText.substr(token.start - start ,token.end - token.start))
+            tokenspan.innerHTML = JSONSyntaxHighlighter.encodeText(lineText.substr(token.start - start ,token.end - token.start))
             splittedTexts.push(tokenspan);
             splitIndex = token.end - start;
 
         }
-        splittedTexts.push(JSONSyntaxHighlighter.formatText(lineText.substr(splitIndex,lineText.length - splitIndex)))
+        splittedTexts.push(JSONSyntaxHighlighter.encodeText(lineText.substr(splitIndex,lineText.length - splitIndex)))
         // console.log("splittedText:", splittedTexts)
 
         for(var splittedText of splittedTexts){
@@ -235,6 +238,12 @@ class JSONSyntaxHighlighter extends SyntaxHighlighter {
         // console.log("lineText: ", lineText)
         return line;
     }
+    // static decodeText(text){
+    //     let decoded = text.replace(/[^\\]\\./g,"");
+    //     console.log("Decoding text: " + text + " \nto" + decoded)
+    //
+    //     return decoded//+ "decoded";//.replaceAll("\\n","").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replaceAll(" ", "&nbsp");
+    // }
 }
 
 highlighters.push(JSONSyntaxHighlighter)
@@ -267,7 +276,7 @@ class DefaultHighlighter extends SyntaxHighlighter {
             return this.getNewLine();
         }
         // console.log("text: ", lineText, " tokens:", lineTokens)
-        var line = document.createElement("div");
+        var line = document.createElement("pre");
         line.innerHTML = lineText;
         return line;
     }
@@ -279,7 +288,7 @@ class SyntaxHighlighterFactory{
     static create(object3D) {
         for(var highlighter of highlighters){
             if(highlighter.is(object3D.object)){
-                console.log("highlighter", highlighter, highlighters)
+                // console.log("highlighter", highlighter, highlighters)
                 return new highlighter(object3D)
             }
         }

@@ -35,7 +35,9 @@ class Object3D{
         this.parent = parent;
         this.identifier = identifier;
         this.metaobject = null;
+        this.infraobject = null; // isMetaOf, protoobject, mesoobject, actualobject
         this.metaclass = null;
+        this.infraclass = null;
         this.relations = {};
         this.childrens = {};
         this.setMesh(mesh);
@@ -218,7 +220,9 @@ class Object3D{
         if(depth < 1) {
             const excludes = ["watch", "unwatch"]
             const includes = ["__proto__"]
+            // var sub_objects = Object.keys(this.object);
             var sub_objects = Object.getOwnPropertyNames(this.object);
+            // var sub_objects = Object.getOwnPropertyNames(this.object) + Object.getOwnPropertyNames(this.object.__proto__);
             for(var exclude of excludes){
                 if(sub_objects.includes(exclude)){
                     sub_objects.splice(sub_objects.indexOf(exclude),1)
@@ -249,9 +253,11 @@ class Object3D{
         // }
     }
     setupWatcher(){
-        // console.log("s setupWatcher?: " , this.object)
-        if(this.object === null || this.object === undefined || !this.object instanceof Object ||  this.object.constructor.toString().indexOf('[native code]') > -1 || this.object instanceof THREE.Mesh) return;
-        // console.log("yes setupWatcher: " , this.object)
+        console.log("s setupWatcher?: " , this.object)
+        if(this.object.constructor.toString().indexOf('[native code]') > -1) return;
+        if(this.object instanceof THREE.Mesh) return;
+        // if(this.object === null || this.object === undefined || !this.object instanceof Object ||  this.object.constructor.toString().indexOf('[native code]') > -1 || this.object instanceof THREE.Mesh) return;
+        console.log("yes setupWatcher: " , this.object)
         if (!this.object.watch) {
             // console.log("!this.object.watch: " , this.object.watch)
 
@@ -303,24 +309,31 @@ class Object3D{
         }
     }
     onObjectExternalEdit(new_object, property, old_value, new_value){
-        // console.log("external edit: ",this, new_object, property,old_value, new_value)
+        console.log("External edit: ",this, new_object, property,old_value, new_value)
         // for(var prop of Object.getOwnPropertyNames(new_object)){
         //     console.log("Prop: ", prop, " value: ", new_object[prop])
         // }
         if(new_value !== old_value){
             // console.log("OLD: ", old_value, "NEW: ", new_value, " THIS: ", this, " IDENTIFIER: ", this.identifier, "this.object[prop]: ", this.object[property], " Property: ", property)
-            if(this.parent && this.parent !== scene) {
-                // var new_prop = {};
-                // new_prop[this.identifier] = new_object
-                // this.parent.redraw({...this.parent.object,...new_prop}, this.parent.parent, this.parent.identifier);
 
-                if(this.parent.object[this.identifier] !== this.object && this.identifier !== "mesh" && property !== "mesh")
-                this.parent.object[this.identifier] = this.object;
+            if(this.parent && this.parent !== scene) {
+                // if it has a parent object
+                if(this.parent.object[this.identifier] !== this.object && this.identifier !== "mesh" && property !== "mesh") {
+                    // if the parent's reference to this object is not updated, update it.
+                    console.log("Recursive edit: ",this.parent, this.object)
+                    this.parent.object[this.identifier] = this.object;
+                }
                 // this.parent.redraw(new_prop, this.parent.parent, this.parent.identifier);
             }else{
+                console.log("Redraw edit: ", this.object, property)
                 this.redraw(new_object, this.parent, this.identifier);
             }
-
+            if(this.infraobject !== null){
+                this.infraobject = this.object;
+            }
+            if(this.metaobject !== null){
+                this.metaobject.object = this;
+            }
         }
         return new_value;
     }
@@ -357,13 +370,15 @@ class Object3D{
             var deserializable = text;
             try {
                 deserializable = JSON.parse(text);
-            } catch (e) {}
+            } catch (e) {
+                console.log("JSON parsing errors: ", e)
+            }
             console.log("TEXT: ", text)
             console.log("DESERIALIZABLE: ", deserializable, deserializable.type)
             var deserialized = deployer.classes.ObjectWrapper.deserialize(deserializable);
             console.log("DESERIALIZED: ", deserialized)
             if(this.parent && this.parent !== scene) {
-                this.parent.object[this.identifier] = deserialized;
+                this.parent.object[this.identifier].set(deserialized);
             }
             this.redraw(deserialized, this.parent, this.identifier)
 
@@ -436,7 +451,8 @@ class Object3D{
     getMetaObject() {
         let positionGrid = this.getPositionGrid();
         positionGrid = new THREE.Vector3(positionGrid.x, positionGrid.y + 2, positionGrid.z);
-        this.metaobject = deployer.importObject(this, positionGrid, new THREE.Vector3(1,1,1), scene, "metaobject")
+        this.metaobject = deployer.importObject(this, positionGrid, new THREE.Vector3(1,1,1), scene, "metaobject");
+        this.metaobject.infraobject = this;
         deployer.importRelation(this, this.metaobject,"");
         console.log("Creating metaobject", this, this.metaobject)
     }
@@ -447,7 +463,8 @@ class Object3D{
     getMetaClass() {
         let positionGrid = this.getPositionGrid();
         positionGrid = new THREE.Vector3(positionGrid.x - 2, positionGrid.y, positionGrid.z);
-        this.metaclass = deployer.importObject(this.constructor, positionGrid, new THREE.Vector3(1,1,1), scene, "metaclass")
+        this.metaclass = deployer.importObject(this.constructor, positionGrid, new THREE.Vector3(1,1,1), scene, "metaclass");
+        this.metaclass.infraclass = this;
         deployer.importRelation(this, this.metaclass);
 
     }

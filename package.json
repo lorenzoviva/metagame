@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify src/kernel.js -o client.js",
-    "start": "node src/server.js"
+    "build": "browserify src/engine/kernel.js -o src/engine/build/client.js",
+    "start": "node src/server/server.js"
   },
   "dependencies": {
     "three": "^0.126.1",

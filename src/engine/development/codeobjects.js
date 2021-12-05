@@ -236,6 +236,8 @@ class Code{
         // console.log(5, node, node.code, code)
         node.code = code.substr(node.start, node.end-node.start)
         // console.log(6, node, node.code, code)
+        // console.log("jsToAST New Node: \nType:", node.type, ", start/end: " , "(", node.start, node.end ,")", ", Parent type:", parent?.type,", parent start/end: " , "(", parent?.node?.start, parent?.node?.end ,")", )
+        // console.warn("Code: ",code.substr(0, node.start),"##",code.substr(node.start, node.end-node.start),"##",code.substr(node.end, code.length - node.end));
         this.node = node
         this.child = [];
         this.type = node.type;
@@ -317,6 +319,24 @@ class Identifier extends Code {
     }
 }
 classes.Identifier = Identifier;
+class Argument extends Code {
+    static primaryColor = 'rgb(0,53,118)';
+    static secondaryColor = 'rgb(187,175,0)';
+
+
+    constructor(code, node = null, parent = null) {
+        super(code, node, parent);
+    }
+    getArgumentIdentifier(){
+        if(this.node.name === this.node.code){
+            return this.node.code;
+        }else{
+            // default argument
+            return this.node.left.code;
+        }
+    }
+}
+classes.Argument = Argument;
 class VariableDeclaration extends Code {
     static primaryColor = 'rgb(125,54,0)';
 
@@ -408,6 +428,47 @@ class Relation{
     }
 }
 classes.Relation = Relation;
+class Grid{
+    constructor(size=40,  orientation= "xz") {
+        this.size = size;
+        this.orientation = orientation;
+        this._isMovingObject = false; // active
+        this.movingObjects = null; // placing
+        this.startMovingPoint = null; // start
+        if(this.orientation.includes("x") && this.orientation.includes("y")){
+            this.anti_normal = new THREE.Vector3(1, 1,0);
+        }else if(this.orientation.includes("y") && this.orientation.includes("z")){
+            this.anti_normal = new THREE.Vector3(0, 1,1);
+        }else{
+            this.anti_normal = new THREE.Vector3(1, 0,1);
+        }
+    }
+    isMovingObject(){
+        return this._isMovingObject;
+    }
+    setMovingObject(placing){
+        if(placing === null) {
+            this._isMovingObject = false;
+            this.movingObjects = null;
+            this.startMovingPoint = null;
+        }else {
+            this._isMovingObject = true;
+            this.movingObjects = placing;
+        }
+    }
+    getMovingObject(){
+        return this.movingObjects;
+    }
+    getMovingObjectStartPoint(){
+        return this.startMovingPoint;
+    }
+    setMovingObjectStartPoint(point){
+        this.startMovingPoint = point;
+    }
+
+
+}
+classes.Grid = Grid;
 
 class Color {
     constructor(r = 0, g = 0, b = 0) {
@@ -452,7 +513,15 @@ class Color {
         return this;
     }
     toString(){
-        return "rgb(" + this.r + ", " + this.b + ", " + this.g + ")"
+        return "rgb(" + this.r + ", " + this.g + ", " + this.b + ")"
+    }
+    static fromString(colorString){
+        let [r, g, b] = colorString.replaceAll("rgb\(","").replaceAll(")", "").replaceAll(" ", "").split(",");
+        // console.log("colorString:", colorString, " r,g,b",r,g,b);
+        r = Number.parseInt(r);
+        b = Number.parseInt(b);
+        g = Number.parseInt(g);
+        return new Color(r,g,b)
     }
 }
 classes.Color = Color;

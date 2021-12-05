@@ -1,13 +1,42 @@
-const clientserver = require('./clientserver.js');
-var classes = require('./metaobjects.js');
+const clientserver = require('../networking/clientserver.js');
+var classes = require('../development/metaobjects.js');
 var SyntaxHighlighterFactory = require('./syntaxHighlighting.js');
 
 
 class MenuManager {
     constructor() {
         this.menus = {}
-
+        window.mouseControls.register("mousedown", this.onMouseClickListener.bind(this));
+        window.mouseControls.register("mousemove", this.onMouseMoveListener.bind(this));
     }
+    // Close all menus or navigate to a specific menu
+    onMouseMoveListener(event, mouse, raycaster) {
+        let open_menus = document.getElementsByClassName("interface menu");
+        let close = true;
+        for(var menu of open_menus){
+            let left = Number(menu.style.left.replace('px', ''));
+            let top = Number(menu.style.top.replace('px', ''));
+            if (!(mouse.cartesian.x < left - 10 || mouse.cartesian.x > left + menu.offsetWidth + 10 ||
+                mouse.cartesian.y < top - 10 || mouse.cartesian.y > top + menu.offsetHeight + 10)) {
+                close = false;
+            }
+        }
+        if(close) {
+            this.closeMenu();
+        }else {
+            this.navigateMenu(event);
+        }
+    }
+    // Opens context menu
+    onMouseClickListener(event, mouse, raycaster) {
+        var object3DList = mouseControls.getInterceptingObjectList();
+        if(mouse.right) {
+            if (allInterfacesClosed() && (deployer.grid === undefined || deployer.grid.isMovingObject() === false) && object3DList.length > 0) {
+                this.showObjectMenu(mouse, object3DList[0])
+            }
+        }
+    }
+
     showMenu(mouse, title, options) {
         this.title = title;
         this.options = options;
@@ -58,18 +87,20 @@ class MenuManager {
                 menus = menus[path];
             }
         }
+
         var menu = document.createElement("div");
         menu.className = "interface menu";
         menu.id = "menu" + menus._title
         var title_element = document.createTextNode(menus._title);
         menu.appendChild(title_element);
-        menu.style.left = x + "px";
-        menu.style.top = y + "px";
+        // console.log("X, Y: ", x, y)
+        menu.style.left = (x > 0 ? x : 0)  + "px";
+        menu.style.top = (y > 0 ? y : 0) + "px";
         document.body.appendChild(menu)
         var title_height = document.createRange();//
         title_height.selectNodeContents(title_element);
-        title_height = title_height.getBoundingClientRect().height;
-
+        var title_bound = title_height.getBoundingClientRect();
+        title_height = title_bound.height;
         var optionList = Object.getOwnPropertyNames(menus).filter(function(opt) {return !opt.startsWith("_")});
         for (var i = 0; i < optionList.length; i++) {
             var option = document.createElement("div");
@@ -95,7 +126,7 @@ class MenuManager {
                 let onhover_callback = function (event) {
                     // console.log("################ event: ", event.target.clientHeight*event.target.index , title_height )
                     let menu_x = Number.parseInt(menu.style.left.replace("px","")) + menu.clientWidth;
-                    let menu_y = Number.parseInt(menu.style.top.replace("px","")) + title_height + event.target.clientHeight*event.target.index;
+                    let menu_y = Number.parseInt(menu.style.top.replace("px","")) + title_height + event.target.clientHeight*(event.target.index);
                     that.createMenu(paths.concat([current_option]), menu_x, menu_y);
                 };
                 option.onhover = onhover_callback;
@@ -108,6 +139,15 @@ class MenuManager {
             option.appendChild(node);
             menu.appendChild(option);
             option.id = "option" + current_option
+
+        }
+        if(paths.length > 0){
+            let bound = menu.getBoundingClientRect();
+            // console.log(bound , title_bound, optionList)
+            // console.log("Menu offset: ", (bound.height / 2))
+            var new_y =  (bound.top - (bound.height / 2));
+            menu.style.top = (new_y > 0 ? new_y : 0) +"px";// - ((bound.height - title_height)/2 ))+"px";
+            // console.log((bound.top - title_height - ((bound.height - title_height)/2 ))+"px", menu.style.top, title_height)
 
         }
         menu.appendChild(this.createCancelOption())
@@ -187,90 +227,8 @@ class MenuManager {
 }
 
 
-const raycaster = new THREE.Raycaster()
-const mouse = {polar: new THREE.Vector2(), cartesian: new THREE.Vector2(), event:"none"};
 var menuManager = new MenuManager();
-function onMouseMove( event ) {
-    mouse.cartesian.x = event.clientX;
-    mouse.cartesian.y = event.clientY;
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.polar.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.polar.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    mouse.event = 'move';
 
-    raycaster.setFromCamera( mouse.polar, window.camera );
-
-    // CLOSE MENU
-    let open_menus = document.getElementsByClassName("interface menu");
-    let close = true;
-    for(var menu of open_menus){
-        let left = Number(menu.style.left.replace('px', ''));
-        let top = Number(menu.style.top.replace('px', ''));
-        if (!(mouse.cartesian.x < left - 10 || mouse.cartesian.x > left + menu.offsetWidth + 10 ||
-                mouse.cartesian.y < top - 10 || mouse.cartesian.y > top + menu.offsetHeight + 10)) {
-            close = false;
-        }
-    }
-    if(close) {
-        menuManager.closeMenu();
-    }else {
-        menuManager.navigateMenu(event);
-    }
-
-
-
-    // MOVE OBJECTS
-    deployer.grid && deployer.grid.onMouseMove(raycaster);
-
-}
-function onClick( event ) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.polar.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.polar.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    mouse.cartesian.x = event.clientX;
-    mouse.cartesian.y = event.clientY;
-    if(event.button === 0){
-        mouse.event = 'downright';
-    }else{
-        mouse.event = 'downleft';
-        onLeftClick(mouse);
-    }
-    return false;
-}
-
-// function showAddObjectMenu(){
-//     // console.log("showAddObjectMenu")
-//     mouse.cartesian.x = 0; //document.querySelector("#addobject").offsetWidth;
-//     mouse.cartesian.y = document.querySelector("#addobject").offsetHeight;
-//     var objects = Object.getOwnPropertyNames(deployer.objects);
-//     var options = {}
-//     for(var clas of Object.getOwnPropertyNames(classes)){
-//         let oclass = clas;
-//         for(var object_name of objects){
-//             var object3D = deployer.objects[object_name]
-//             console.log("class: ", oclass, " object: ", object3D)
-//             if(object3D instanceof classes[oclass]){
-//                 console.log("isinstanceof")
-//                 options[clas + ">" + object3D.name] = function (){
-//                     return function(){
-//                         var block = new classes[oclass](object3D.object);
-//                         // var block = new classes[oclass]();
-//                         // block.setObject(object3D.object);
-//                         // block.redraw(object3D.object, block.parent, block.identifier)
-//                         // block.setMesh(object3D.mesh);
-//
-//                         console.log("Created block: ", oclass, classes[oclass], block);
-//                         block.put(scene);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     menuManager.showMenu(mouse, "Add object", options)
-//     // menuManager.showMenu(mouse, "Add object", {"test": function (){ return function(){ console.log("HELLO")}}})
-// }
 function showAddObjectMenu(){
     // console.log("showAddObjectMenu")
     mouse.cartesian.x = 0; //document.querySelector("#addobject").offsetWidth;
@@ -296,22 +254,23 @@ function showAddObjectMenu(){
     // menuManager.showMenu(mouse, "Add object", {"test": function (){ return function(){ console.log("HELLO")}}})
 }
 
-function onLeftClick(mouse){
-    // STOP MOVING OBJECTS
-    deployer.grid && deployer.grid.onLeftClick();
-    //OPEN MENU
-    var object3DList = getInterceptingObjectList();
-    if(allInterfacesClosed() && (deployer.grid === undefined || deployer.grid.object.active === false) && object3DList.length > 0){
-        menuManager.showObjectMenu(mouse, object3DList[0])
-    }
+
+function setInterfaceText(identifier, newText){
+    document.getElementById(identifier).innerText = newText;
 }
-function onRender(){
-    if(scene === undefined) return;
-    // update the picking ray with the camera and mouse position
-    raycaster.setFromCamera( mouse.polar, window.camera );
-    var object3DList = getInterceptingObjectList();
+
+function allInterfacesClosed(){
+    let menu = document.getElementsByClassName("interface menu");
+    let editorpanel = document.getElementById("editorpanel");
+    let dropdown = document.getElementById("dropmessage");
+    return menu.length === 0 && editorpanel.style.display !== 'flex' && dropdown.style.display === 'none';
+}
+
+function onMouseInterceptObject3D(object3DList){
+   updateContextLabel(object3DList);
+}
+function updateContextLabel(object3DList) {
     // SHOW CONTEXT (names top-left) AND RELATIONS (wiring)
-    deployer.hideAllRelations();
     if ( object3DList.length > 0){
         var nameList = "";
         for (var i = 0; i < object3DList.length; i++){
@@ -322,60 +281,9 @@ function onRender(){
         //     nameList= nameList.substr(0, 40) + "...";
         // }
         setInterfaceText("contextviewer",nameList)
-        deployer.showRelations(object3DList[0]);
     }
 }
-function getInterceptingObjectList() {
-    // SETUP OBJECTS TO BE INTERCEPTED
-    var all_meshes = [];
-    var new_meshes = scene.children.filter(function (element) {
-        return deployer.grid === undefined || element !== deployer.grid.mesh;
-    });
-    while (new_meshes.length > 0){
-        var childs = [];
-        all_meshes.push(...new_meshes);
-        for (var mesh_index = 0; mesh_index < new_meshes.length; mesh_index++){
-            if(new_meshes[mesh_index] !== undefined && new_meshes[mesh_index].children !== undefined){
-                childs.push(...new_meshes[mesh_index].children);
-            }
-        }
-        new_meshes = childs;
-    }
-
-    // SETUP THE INTERCEPTION ARRAY
-    const intersects = raycaster.intersectObjects( all_meshes );
-    let object3DList = [];
-    for ( let i = 0; i < intersects.length; i ++ ) {
-        // intersects[ i ].object.material.color.set( 0xff0000 );
-        let intersectedObject = intersects[i].object;
-        if (intersectedObject.userData.object3D !== undefined) {
-            let items = intersectedObject.userData.object3D;
-            if (!object3DList.includes(items)){
-                object3DList.push(items);
-            }
-        }else if(intersectedObject.parent !== scene && intersectedObject.parent.userData.object3D !== undefined){
-            let items = intersectedObject.parent.userData.object3D;
-            if (!object3DList.includes(items)){
-                object3DList.push(items);
-            }
-        }
-        // console.log("INTERCEPTING: ",i , intersectedObject)
-
-    }
-    return object3DList;
-}
-
-function setInterfaceText(identifier, newText){
-    document.getElementById(identifier).innerText = newText;
-}
-
-function allInterfacesClosed(){
-    let menu = document.getElementsByClassName("interface menu");
-    let editorpanel = document.getElementById("editorpanel");
-    return menu.length === 0 && editorpanel.style.display !== 'flex';
-}
-
-
+mouseControls.register("render", onMouseInterceptObject3D)
 class TextEditor{
     constructor(object3D) {
         this.textarea = document.createElement("div");
@@ -395,7 +303,7 @@ class TextEditor{
             // console.log("input event fired", caret);
         }, false);
         // console.log("LINES:", lines)
-        console.log("syntaxHighlighter", this.syntaxHighlighter)
+        // console.log("syntaxHighlighter", this.syntaxHighlighter)
         // console.log("Editable text:" + editabletext, editabletext)
 
     }
@@ -450,7 +358,9 @@ class TextEditor{
     getNode(){
         return this.textarea;
     }
-
+    getText(){
+        return this.textarea.innerText;
+    }
     setCaretPosition(element, position) {
         var range = document.createRange()
         var sel = window.getSelection()
@@ -491,17 +401,26 @@ class TextEditor{
         return {node: node, position: position}
     }
 }
+window.textarea = null;
 function showTextEditor(object3D) {
     let editorPanel = document.getElementById("editorpanel");
     editorPanel.innerHTML = '';
     editorPanel.style.display = "flex";
+    // editorPanel.onmousedown = onMouseDownTextEditor;
+    // editorPanel.ondragover = onDragTextEditor;
     var titlePanel = document.createElement("div");
     titlePanel.className = "title"
+    titlePanel.id = "editorpaneltitle";
     titlePanel.appendChild(document.createTextNode("Edit: " + object3D.name + " object"));
+    titlePanel.onmousedown = onMouseDownTextEditorTitle;
     var buttonPanel = document.createElement("div");
     buttonPanel.className = "interface topright buttonpanel"
+    window.textarea = new TextEditor(object3D);
+    // var textarea = new TextEditor(object3D);
     buttonPanel.appendChild(createButton("bluebutton", "\uD83D\uDCBE", function () {
-        let newtext = document.getElementById("texteditor").innerText;
+        let newtext = window.textarea.getText();
+        // let newtext = textarea.getText();
+        // let newtext = document.getElementById("texteditor").innerText;
         // console.log("Save code:", newCode);
         object3D.editFromText(newtext);
         return false;
@@ -512,8 +431,118 @@ function showTextEditor(object3D) {
     }));
     titlePanel.appendChild(buttonPanel)
     editorPanel.appendChild(titlePanel)
-    var textarea = new TextEditor(object3D);
     editorPanel.appendChild(textarea.getNode())
+}
+var textEditorResizeLastPosition = {l: null, r: null, t : null, b: null};
+// on user drag border, resize the texteditor
+function onMouseDownTextEditor(event){
+    let editorPanel = document.getElementById("editorpanel");
+    let panelRectangle = editorPanel.getBoundingClientRect()
+    let dl = event.clientX - panelRectangle.left;
+    let dr = event.clientX - panelRectangle.right;
+    let dt = event.clientY - panelRectangle.top;
+    let db = event.clientY - panelRectangle.bottom;
+    if(dr < 5 && dr > -5) textEditorResizeLastPosition.l = event.clientX;
+    if(dl < 5 && dl > -5) textEditorResizeLastPosition.r = event.clientX;
+    if(dt < 5 && dt > -5) textEditorResizeLastPosition.t = event.clientY;
+    if(db < 5 && db > -5) textEditorResizeLastPosition.b = event.clientY;
+    textEditorResizeLastPosition.x = event.clientX;
+    textEditorResizeLastPosition.y = event.clientY;
+
+    window.addEventListener("mousemove", onMouseMoveTextEditor);
+    var onmouseup =() => {
+        // console.log("mouse up");
+        window.removeEventListener("mousemove", onMouseMoveTextEditor );
+        window.removeEventListener("mouseup", onmouseup );
+        textEditorDragLastPosition = {l: null, r: null, t : null, b: null};
+    }
+    window.addEventListener("mouseup", onmouseup);
+    return false;
+}
+// todo: make this work
+// on user drag border, resize the texteditor
+function onMouseMoveTextEditor(event){
+    let editorPanel = document.getElementById("editorpanel");
+    let panelRectangle = editorPanel.getBoundingClientRect()
+    let newWidth =  editorPanel.style.width ? Number.parseFloat(editorPanel.style.width.replace("px", "")) : panelRectangle.width;
+    let newHeight = editorPanel.style.height ? Number.parseFloat(editorPanel.style.height.replace("px", "")) :  panelRectangle.height ;
+    console.log("RESIZE TEXT EDITOR", event.clientX, event.clientY, " W: ", newWidth, "+", event.clientX - panelRectangle.right, "H: ",newHeight ,"+", event.clientY - panelRectangle.bottom);
+    let dx = event.clientX - panelRectangle.right;
+    let dy = event.clientY - panelRectangle.bottom;
+    if(dx < 5 && dx > -5 && dy < 5  && dy > -5 ){
+        console.log("case xy" , dx, dy)
+        newWidth = newWidth + dx;
+        newHeight = newHeight + dy;
+    }else if(dx < 5 && dx > -5){
+        console.log("case x", dx);
+        newWidth = newWidth + dx;
+    }else if(dy < 5  && dy > -5) {
+        console.log("case y", dy);
+        newHeight = newHeight + dy;
+    }
+    console.log("newWidth:", newWidth, "newHeight:", newHeight);
+    if(newWidth < 100){
+        newWidth = 100;
+    }
+    if(newHeight < 100){
+        newHeight = 100;
+    }
+    editorPanel.style.width = newWidth + "px";
+    editorPanel.style.height = newHeight + "px";
+    textEditorResizeLastPosition = {x: event.clientX, y: event.clientY};
+
+    event.preventDefault();
+    return true;
+}
+var textEditorDragLastPosition = {x: null, y: null};
+function onMouseDownTextEditorTitle(event){
+    textEditorDragLastPosition = {x: event.clientX, y: event.clientY};
+    let titlePanel = document.getElementById("editorpaneltitle");
+    console.log("mouse down");
+    window.addEventListener("mousemove", onDragTextEditorTitle);
+    var onmouseup =() => {
+        // console.log("mouse up");
+        window.removeEventListener("mousemove", onDragTextEditorTitle );
+        window.removeEventListener("mouseup", onmouseup );
+        textEditorDragLastPosition = {x: null, y: null};
+    }
+    window.addEventListener("mouseup", onmouseup);
+
+}
+// function to move the texteditor on user dragging title
+function onDragTextEditorTitle(event){
+    // console.log("onDragTextEditorTitle", event)
+    let editorPanel = document.getElementById("editorpanel");
+    let panelRectangle = editorPanel.getBoundingClientRect()
+    let x = panelRectangle.left;
+    let y = panelRectangle.top;
+    let width = panelRectangle.width;
+    let height = panelRectangle.height;
+    let xmin = 0;
+    let ymin = 0;
+    let xmax = window.innerWidth - width;
+    let ymax = window.innerHeight - height;
+    let xmove = event.clientX - textEditorDragLastPosition.x;
+    let ymove = event.clientY - textEditorDragLastPosition.y;
+    let newx = x + xmove;
+    let newy = y + ymove;
+    if(newx < xmin){
+        newx = xmin;
+    }
+    if(newx > xmax){
+        newx = xmax;
+    }
+    if(newy < ymin){
+        newy = ymin;
+    }
+    if(newy > ymax){
+        newy = ymax;
+    }
+    editorPanel.style.left = newx + "px";
+    editorPanel.style.top = newy + "px";
+    textEditorDragLastPosition = {x: event.clientX, y: event.clientY};
+    event.preventDefault();
+
 }
 
 function createButton(class_string, text, onclick) {
@@ -529,17 +558,24 @@ function closeTextEditor() {
     editorPanel.style.display = "none";
 }
 
-// export default Exported;
+function openDropdownMessage(message) {
+    let dropdown = document.getElementById("dropmessage");
+    dropdown.innerText = message;
+    dropdown.style.display = "block";
+}
+function closeDropdownMessage() {
+    let dropdown = document.getElementById("dropmessage");
+    dropdown.style.display = "none";
+}
+
 module.exports = {closeTextEditor,
     showTextEditor,
     closeMenu:menuManager.closeMenu,
     showMenu:menuManager.showObjectMenu,
     showAddObjectMenu,
     allInterfacesClosed,
-    onMouseMove,
-    onClick,
-    onRender,
     setInterfaceText,
+    openDropdownMessage,
+    closeDropdownMessage,
     createMenu:menuManager.createMenu,
-    mouse,
     menuManager};

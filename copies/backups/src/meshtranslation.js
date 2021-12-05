@@ -1,11 +1,11 @@
 class ObjectToMeshTranslator{
     constructor(object, args) {}
-    render(object, args){}
+    static render(object, args){}
 }
 
 class ObjectToMesh extends ObjectToMeshTranslator{
     // from deployer
-    setGenericMeshGetter(object, objectType){
+    static setGenericMeshGetter(object, objectType){
         // console.log("setGenericMeshGetter(", object, ",", objectType, ")")
         let color = new classes.Color().randomLight();
         object.constructor.prototype.getGenericMesh = function getGenericMesh(parent, identifier){
@@ -43,16 +43,7 @@ class ObjectToMesh extends ObjectToMeshTranslator{
         }
     }
     // from Object3D
-    redraw(object, parent, identifier){
-        // if(parent && parent !== scene && identifier){
-        //     var newobj = {};
-        //     this.parent = parent;
-        //     this.identifier = identifier;
-        //     //dont use setObject
-        //     this.object = object;
-        //     newobj[this.identifier] = object;
-        //     return parent.redraw({...parent.object, ...newobj}, parent.parent, parent.identifier);
-        // }
+    static redraw(object, parent, identifier){
         var g_pos = this.getPositionGrid();
         var i_pos = this.getPositionInternal();
         var o_scale = this.mesh.scale;
@@ -124,9 +115,9 @@ class ObjectToMesh extends ObjectToMeshTranslator{
 }
 class CodeToMesh extends ObjectToMeshTranslator{
     // from Code3D constructor
-    render(object, args) {
+    static render(object, args) {
         super.render(object, args);
-        var mesh = new THREE.OpenCubeMesh(this.constructor.getTextMaterial(this))
+        var mesh = new THREE.OpenCubeMesh(CodeToMesh.getTextMaterial(this))
     }
     // from Code3D
     static getTextMaterial(code3d) {

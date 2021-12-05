@@ -35,8 +35,7 @@ pre {
     left: 400px;
     top: 500px;
     border: solid 1pt #b5b5b5;
-    border-radius: 5px;
-    background-color: #5a5a5a4d;
+    background-color: #5a5a5a;
     color: white;
     font-weight: bolder;
     padding: 2px;
@@ -47,8 +46,7 @@ pre {
     left: 25%;
     top: 25%;
     border: solid 1pt #b5b5b5;
-    border-radius: 5px;
-    background-color: #5a5a5a4d;
+    background-color: #5a5a5a;
     color: white;
     font-weight: bolder;
     padding: 2px;
@@ -107,7 +105,7 @@ pre {
     width: 20px;
     height: 20px;
     line-height: 22px;
-    font-size: 8px;
+    font-size: 12px;
     /*font-family: monospace;*/
 }
 .redbutton{
@@ -139,7 +137,8 @@ pre {
     background-color: white;
     color: #737373;
     font-weight: normal;
-    padding: 3px;
+    padding: 2px;
+
 
 }
 .menu>.option:hover{
@@ -149,17 +148,4 @@ pre {
 #cameraswitcher:hover{
     color: white;
     background: #888888;
-}
-
-.dropdown {
-    left: 24%;
-    top: 0px;
-    width: 50%;
-    background-color: #5a5a5a4d;
-    color: white;
-    font-weight: bolder;
-    text-align: center;
-    padding: 1%;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
 }
