@@ -162,8 +162,10 @@ class GlobalDeployer{
         code_position.z += this.global_shift.z;
         for (var instruction_i = 0; instruction_i < codeObjects.length; instruction_i++){
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
-            var codeblock = new classes.Code3D(codeObjects[instruction_i]);
-            codeblock.setPositionGrid(code_position);
+            // var codeblock = new classes.Code3D(codeObjects[instruction_i]);
+            var code_scale = new THREE.Vector3(1,1,1);
+            var codeblock = this.importObject(codeObjects[instruction_i], code_position,code_scale, scene);
+            // codeblock.setPositionGrid(code_position);
             //console.log("Importing instruction n°: " + instruction_i, codeblock)
             var link = this.importRelation(module3D, codeblock)
             var code_relation_forward = new classes.CodeRelation(codeblock, module3D, codeblock.object, module3D.object.fc_child[instruction_i])
@@ -182,8 +184,10 @@ class GlobalDeployer{
         for (var instruction_i = 0; instruction_i < codeObjects.length; instruction_i++){
             if(codeObjects[instruction_i].object3D === undefined) {
                 code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x, code_position.y + this.inter_child_space.y, code_position.z + this.inter_child_space.z);
-                var codeblock = new classes.Code3D(codeObjects[instruction_i]);
-                codeblock.setPositionGrid(code_position);
+                // var codeblock = new classes.Code3D(codeObjects[instruction_i]);
+                var code_scale = new THREE.Vector3(1,1,1);
+                var codeblock = this.importObject(codeObjects[instruction_i], code_position,code_scale, scene);
+                // codeblock.setPositionGrid(code_position);
                 var link = this.importRelation(code3D, codeblock, "arc", -5)
                 var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i]);
                 var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent());
@@ -202,8 +206,10 @@ class GlobalDeployer{
         code_position.z += this.global_shift.z;
         for (var instruction_i = 0; instruction_i < codeObjects.length; instruction_i++){
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
-            var codeblock = new classes.Code3D(codeObjects[instruction_i]);
-            codeblock.setPositionGrid(code_position);
+            // var codeblock = new classes.Code3D(codeObjects[instruction_i]);
+            var code_scale = new THREE.Vector3(1,1,1);
+            var codeblock = this.importObject(codeObjects[instruction_i], code_position,code_scale, scene);
+            // codeblock.setPositionGrid(code_position);
             var link = this.importRelation(code3D, codeblock,"arc", -5)
             var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_params[instruction_i]);
             var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent());
@@ -213,9 +219,10 @@ class GlobalDeployer{
     }
     importDynamic3DJS(code,  position= new THREE.Vector3(0,0,0)){
         // console.log("Code: ", code)
-        var codeblock = new classes.Code3D(code);
+        // var codeblock = new classes.Code3D(code);
+        var codeblock = this.importObject(code, position);
         //console.log("Codeblock: ", codeblock)
-        codeblock.setPositionGrid(position);
+        // codeblock.setPositionGrid(position);
     }
     require3D(res){
         let url = classes.Module.localURLToGlobal(res);
@@ -254,9 +261,16 @@ class GlobalDeployer{
             objectType = "Undefined3D"
         }else if(object === null){
             objectType = "Null3D"
+        }else if(object instanceof classes.Module ){ //|| object instanceof Function
+            // newly added, check consistency
+            objectType = "Module3D"
         }else if(object instanceof classes.Code ){ //|| object instanceof Function
             // newly added, check consistency
-            objectType = "Code3D"
+            if(object instanceof classes.FunctionDeclaration || object instanceof classes.ClassDeclaration){
+                objectType = "Function3D"
+            } else {
+                objectType = "Code3D"
+            }
         }else{
             objectType = object.constructor.name + "3D"
         }
@@ -322,6 +336,17 @@ class GlobalDeployer{
 
         }
         return object3D;
+    }
+    recast(object3D){
+        var object = object3D.object;
+        var objectType = deployer.getObject3DType(object);
+        var object3DType = object3D.constructor.name;
+        if(object3DType !== objectType){
+            console.log("Recasting: ", object3DType, " to: ", objectType);
+            this.importObject( object,object3D.getPositionGrid(),object3D.getScale(), object3D.parent, object3D.identifier);
+            return true;
+        }
+        return false;
     }
     importGrid(object=new classes.Grid(40,"xz")){
         this.grid = new classes.Grid3D(object);
@@ -449,9 +474,6 @@ class GlobalDeployer{
             };
             callback_ids.push(mouseControls.register("mousedown", handler, object.mesh, true));
         }
-    }
-    userPickedObject(){
-
     }
 
     // addChildObjects(object3D, sub_objects, positionFunction, scaleFunction){

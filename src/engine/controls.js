@@ -27,7 +27,7 @@ class MouseControls {
         // (-1 to +1) for both components
         this.mouse.polar.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         this.mouse.polar.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-        this.raycaster.setFromCamera( this.mouse.polar, window.camera );
+        this.raycaster.setFromCamera( this.mouse.polar, window.cameraManager.camera );
 
         this.mouse.event = event.type;
         this.mouse.down = event.type === "mousedown";
@@ -93,7 +93,7 @@ class MouseControls {
     onRender(){
         if(window.scene === undefined) return;
         // update the picking ray with the camera and mouse position
-        this.raycaster.setFromCamera( this.mouse.polar, window.camera );
+        this.raycaster.setFromCamera( this.mouse.polar, window.cameraManager.camera );
         var handlers = this.listeners.render;
         for(var handler of handlers){
             handler.callback(this.getInterceptingObjectList(), this.mouse, this.raycaster);

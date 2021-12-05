@@ -55015,7 +55015,7 @@ class MouseControls {
         // (-1 to +1) for both components
         this.mouse.polar.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         this.mouse.polar.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-        this.raycaster.setFromCamera( this.mouse.polar, window.camera );
+        this.raycaster.setFromCamera( this.mouse.polar, window.cameraManager.camera );
 
         this.mouse.event = event.type;
         this.mouse.down = event.type === "mousedown";
@@ -55081,7 +55081,7 @@ class MouseControls {
     onRender(){
         if(window.scene === undefined) return;
         // update the picking ray with the camera and mouse position
-        this.raycaster.setFromCamera( this.mouse.polar, window.camera );
+        this.raycaster.setFromCamera( this.mouse.polar, window.cameraManager.camera );
         var handlers = this.listeners.render;
         for(var handler of handlers){
             handler.callback(this.getInterceptingObjectList(), this.mouse, this.raycaster);
@@ -55090,6 +55090,43 @@ class MouseControls {
 }
 module.exports = MouseControls;
 },{}],8:[function(require,module,exports){
+const THREE = require("three");
+
+
+class CameraManager {
+
+    constructor() {
+        this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.0001, 100 );
+        // camera = new THREE.OrthographicCamera( - 10 * window.innerWidth / window.innerHeight, 10*window.innerWidth / window.innerHeight, 10, -10 );
+        this.camera.position.z = 5;
+        this.camera.position.y = 5;
+    }
+    onWindowResize(){
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+    }
+    swapCamera(){
+            let cameraswitcher = document.getElementById("cameraswitcher");
+            let swap = cameraswitcher.innerText;
+            let new_camera = this.camera;
+            if(swap === "Orthogonal"){
+                interfaces.setInterfaceText("cameraswitcher", "Perspective")
+                new_camera = new THREE.OrthographicCamera( - 10 * window.innerWidth / window.innerHeight, 10*window.innerWidth / window.innerHeight, 10, -10 );
+
+            }else{
+                interfaces.setInterfaceText("cameraswitcher", "Orthogonal")
+                new_camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.0001, 100 );
+            }
+            new_camera.position.copy( this.camera.position);
+            new_camera.rotation.copy( this.camera.rotation);
+            this.camera = new_camera;
+            window.controls.object = this.camera;
+            window.requestAnimationFrame(render);
+
+        }
+}
+module.exports = CameraManager;
+},{"three":6}],9:[function(require,module,exports){
 var classes = require('../../development/metaobjects.js');
 let delta = 0.00001;
 
@@ -55254,8 +55291,10 @@ class GlobalDeployer{
         code_position.z += this.global_shift.z;
         for (var instruction_i = 0; instruction_i < codeObjects.length; instruction_i++){
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
-            var codeblock = new classes.Code3D(codeObjects[instruction_i]);
-            codeblock.setPositionGrid(code_position);
+            // var codeblock = new classes.Code3D(codeObjects[instruction_i]);
+            var code_scale = new THREE.Vector3(1,1,1);
+            var codeblock = this.importObject(codeObjects[instruction_i], code_position,code_scale, scene);
+            // codeblock.setPositionGrid(code_position);
             //console.log("Importing instruction n°: " + instruction_i, codeblock)
             var link = this.importRelation(module3D, codeblock)
             var code_relation_forward = new classes.CodeRelation(codeblock, module3D, codeblock.object, module3D.object.fc_child[instruction_i])
@@ -55274,8 +55313,10 @@ class GlobalDeployer{
         for (var instruction_i = 0; instruction_i < codeObjects.length; instruction_i++){
             if(codeObjects[instruction_i].object3D === undefined) {
                 code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x, code_position.y + this.inter_child_space.y, code_position.z + this.inter_child_space.z);
-                var codeblock = new classes.Code3D(codeObjects[instruction_i]);
-                codeblock.setPositionGrid(code_position);
+                // var codeblock = new classes.Code3D(codeObjects[instruction_i]);
+                var code_scale = new THREE.Vector3(1,1,1);
+                var codeblock = this.importObject(codeObjects[instruction_i], code_position,code_scale, scene);
+                // codeblock.setPositionGrid(code_position);
                 var link = this.importRelation(code3D, codeblock, "arc", -5)
                 var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_child[instruction_i]);
                 var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent());
@@ -55294,8 +55335,10 @@ class GlobalDeployer{
         code_position.z += this.global_shift.z;
         for (var instruction_i = 0; instruction_i < codeObjects.length; instruction_i++){
             code_position = new THREE.Vector3(code_position.x + this.inter_child_space.x,code_position.y + this.inter_child_space.y,code_position.z + this.inter_child_space.z);
-            var codeblock = new classes.Code3D(codeObjects[instruction_i]);
-            codeblock.setPositionGrid(code_position);
+            // var codeblock = new classes.Code3D(codeObjects[instruction_i]);
+            var code_scale = new THREE.Vector3(1,1,1);
+            var codeblock = this.importObject(codeObjects[instruction_i], code_position,code_scale, scene);
+            // codeblock.setPositionGrid(code_position);
             var link = this.importRelation(code3D, codeblock,"arc", -5)
             var code_relation_forward = new classes.CodeRelation(codeblock, code3D, codeblock.object, code3D.object.fc_params[instruction_i]);
             var code_relation_backward = new classes.CodeRelation(code3D, codeblock, code3D.object, codeblock.object.getFirstObject3DParent());
@@ -55305,9 +55348,10 @@ class GlobalDeployer{
     }
     importDynamic3DJS(code,  position= new THREE.Vector3(0,0,0)){
         // console.log("Code: ", code)
-        var codeblock = new classes.Code3D(code);
+        // var codeblock = new classes.Code3D(code);
+        var codeblock = this.importObject(code, position);
         //console.log("Codeblock: ", codeblock)
-        codeblock.setPositionGrid(position);
+        // codeblock.setPositionGrid(position);
     }
     require3D(res){
         let url = classes.Module.localURLToGlobal(res);
@@ -55346,9 +55390,16 @@ class GlobalDeployer{
             objectType = "Undefined3D"
         }else if(object === null){
             objectType = "Null3D"
+        }else if(object instanceof classes.Module ){ //|| object instanceof Function
+            // newly added, check consistency
+            objectType = "Module3D"
         }else if(object instanceof classes.Code ){ //|| object instanceof Function
             // newly added, check consistency
-            objectType = "Code3D"
+            if(object instanceof classes.FunctionDeclaration || object instanceof classes.ClassDeclaration){
+                objectType = "Function3D"
+            } else {
+                objectType = "Code3D"
+            }
         }else{
             objectType = object.constructor.name + "3D"
         }
@@ -55414,6 +55465,17 @@ class GlobalDeployer{
 
         }
         return object3D;
+    }
+    recast(object3D){
+        var object = object3D.object;
+        var objectType = deployer.getObject3DType(object);
+        var object3DType = object3D.constructor.name;
+        if(object3DType !== objectType){
+            console.log("Recasting: ", object3DType, " to: ", objectType);
+            this.importObject( object,object3D.getPositionGrid(),object3D.getScale(), object3D.parent, object3D.identifier);
+            return true;
+        }
+        return false;
     }
     importGrid(object=new classes.Grid(40,"xz")){
         this.grid = new classes.Grid3D(object);
@@ -55542,9 +55604,6 @@ class GlobalDeployer{
             callback_ids.push(mouseControls.register("mousedown", handler, object.mesh, true));
         }
     }
-    userPickedObject(){
-
-    }
 
     // addChildObjects(object3D, sub_objects, positionFunction, scaleFunction){
     //     var sub_scale = scaleFunction(object3D, sub_objects)//object3D.mesh.scale.x / (2 * sub_objects.length)
@@ -55588,7 +55647,108 @@ function searchInContext(js, context) {
 
 
 module.exports = GlobalDeployer;
-},{"../../development/metaobjects.js":12}],9:[function(require,module,exports){
+},{"../../development/metaobjects.js":15}],10:[function(require,module,exports){
+const THREE = require("three");
+const OrbitControls = require('three-orbit-controls')(THREE);
+window.THREE = THREE;
+
+const MouseControls = require('../controls.js');
+window.mouseControls = new MouseControls();
+window.interfaces = require('../interfaces/interfaces.js')
+window.clientserver = require('../networking/clientserver.js');
+const GlobalDeployer = require('../core/deployers/scriptdeployer.js')
+const CameraManager = require('./cameramanager.js');
+require("../tools/clientutils.js")
+
+
+
+
+class SceneRenderer{
+    constructor(maxFPS=60){
+        window.deployer = new GlobalDeployer();
+        window.geval = this.execScript || eval;
+        window.metaobjects = deployer.classes;
+        window.maxFPS = maxFPS;
+        window.last_frame_time = new Date();
+        window.game_loop_timeout = null;
+        this.init();
+    }
+
+
+    init() {
+        let cameraManager, scene, renderer, clock;
+
+        cameraManager = new CameraManager();
+        scene = new THREE.Scene();
+
+        clock = new THREE.Clock();
+
+        renderer = new THREE.WebGLRenderer( { antialias: true } );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+
+        const spotLight = new THREE.SpotLight( 0xffffff );
+        spotLight.position.set( 0, 5, 0 );
+
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        spotLight.shadow.camera.near = 500;
+        spotLight.shadow.camera.far = 4000;
+        spotLight.shadow.camera.fov = 30;
+
+        scene.add( spotLight );
+
+        const controls = new OrbitControls( cameraManager.camera, renderer.domElement );
+        controls.addEventListener( 'change', this.render ); // use if there is no animation loop
+
+        controls.minDistance = 0.1;
+        controls.maxDistance = 10;
+        controls.target.set( 0, 0, - 0.2 );
+
+        window.scene = scene;
+        window.cameraManager = cameraManager;
+        window.controls = controls;
+        window.renderer = renderer;
+
+        window.render = this.render;
+        window.renderSync = this.renderSync;
+
+        controls.update();
+
+        deployer.importGrid();
+        deployer.import3DJSModule('/src/playground.js');
+        deployer.import3DJSModule('/src/playgroundclass.js',new THREE.Vector3(-2,0,0));
+
+        window.requestAnimationFrame(this.render);
+
+    }
+
+    render() {
+        mouseControls.onRender();
+        var new_time = new Date()
+        let fps = 1000 / (new_time.getTime() - window.last_frame_time.getTime());
+        if(fps > window.maxFPS){
+            var minDelay = 1000 / window.maxFPS;
+            var delayRender = Math.ceil(minDelay - (new_time.getTime() - window.last_frame_time.getTime()));
+            if(window.game_loop_timeout === null) window.game_loop_timeout = setTimeout(window.renderSync, delayRender);
+        }else{
+            window.renderSync();
+        }
+    }
+    renderSync(){
+        var new_time = new Date()
+        let fps = 1000 / (new_time.getTime() - window.last_frame_time.getTime());
+        interfaces.setInterfaceText("fpscounter", Math.ceil(fps) + " FPS")
+        window.last_frame_time = new_time;
+        renderer.render( scene, window.cameraManager.camera );
+        window.game_loop_timeout = null;
+        requestAnimationFrame(window.render);
+    }
+}
+module.exports = SceneRenderer;
+},{"../controls.js":7,"../core/deployers/scriptdeployer.js":9,"../interfaces/interfaces.js":16,"../networking/clientserver.js":20,"../tools/clientutils.js":21,"./cameramanager.js":8,"three":6,"three-orbit-controls":5}],11:[function(require,module,exports){
 var classes = require("../development/codeobjects.js");
 // var utils = require("util")
 // window.nodeutils = utils;
@@ -55775,7 +55935,26 @@ classes.Object3D.deserialize = function(object, reference=false){
 // Object.prototype.serialize = function () {
 //     return JSON.stringify(this);
 // }
-},{"../development/codeobjects.js":10}],10:[function(require,module,exports){
+},{"../development/codeobjects.js":13}],12:[function(require,module,exports){
+
+window.originalWindowPropertySet = Object.getOwnPropertyNames(window);
+
+
+const SceneRenderer = require('./scenerenderer.js');
+window.sceneRenderer = new SceneRenderer();
+
+
+window.onload = function(){
+    window.setupWindowPropertySet = Object.getOwnPropertyNames(window).filter(n => !window.originalWindowPropertySet.includes(n) )
+    window.otherWindowPropertySet = ['getNewProperties', 'dir', 'dirxml', 'profile', 'profileEnd', 'clear', 'table', 'keys', 'values', 'debug', 'undebug', 'monitor', 'unmonitor', 'inspect', 'copy', 'queryObjects', '$_', '$0', '$1', '$2', '$3', '$4', 'getEventListeners', 'getAccessibleName', 'getAccessibleRole', 'monitorEvents', 'unmonitorEvents', '$', '$$', '$x'];
+    window.originalWindowPropertySet = Object.getOwnPropertyNames(window);
+    console.log("window.setupWindowPropertySet",  window.setupWindowPropertySet)
+
+    window.getNewProperties = function(){
+        return Object.getOwnPropertyNames(window).filter(n => ![...originalWindowPropertySet, ...setupWindowPropertySet, ...otherWindowPropertySet].includes(n))
+    }
+};
+},{"./scenerenderer.js":10}],13:[function(require,module,exports){
 const {LooseParser} = require('acorn-loose');
 const {tokTypes, tokenizer} = require('acorn');
 // const cloneDeep = require('lodash/fp/cloneDeep');
@@ -56304,7 +56483,7 @@ class Color {
 }
 classes.Color = Color;
 module.exports = classes;
-},{"acorn":3,"acorn-loose":1}],11:[function(require,module,exports){
+},{"acorn":3,"acorn-loose":1}],14:[function(require,module,exports){
 
 
 class OpenCubeMesh extends THREE.Mesh {
@@ -56391,7 +56570,7 @@ class TileGridWireFrame extends THREE.Mesh {
 }
 THREE.TileGridWireFrame = TileGridWireFrame;
 THREE.OpenCubeMesh = OpenCubeMesh;
-},{}],12:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var GLTFLoader = require("three-gltf-loader");
 require("./custommesh.js");
 var classes = require("./codeobjects.js");
@@ -56496,7 +56675,7 @@ class Object3D{
         return this.destroyer;
     }
     destroyer(){
-        //console.log("Destroy: ", this)
+        console.log("Destroy: ", this)
         if(this.parent === scene){
             this.parent.remove(this.mesh);
         }else{
@@ -56636,6 +56815,9 @@ class Object3D{
         }
     }
     objectSetup(){
+        if(deployer.recast(this)){
+            return this.destroyer();
+        }
         // if (!this.mesh){
         this.setMesh(this.draw());
         // }
@@ -57174,8 +57356,10 @@ class Code3D extends Object3D{
     }
 
     objectSetup() {
-
         // super.objectSetup();
+        if(deployer.recast(this)){
+            return this.destroyer();
+        }
         if(typeof this.object !== "object" || !(this.object instanceof classes.Code) ){
             this.object = classes.Code.createCode(this.object)
         }
@@ -57449,14 +57633,18 @@ class Code3D extends Object3D{
 }
 class Function3D extends Code3D{
     constructor(object, parent=scene, identifier=""){
-        let code = object.toString();
-        if (code.endsWith("{ [native code] }")){
-            code = "this." + object.name;
+        let code = object;
+        if(!(object instanceof classes.Code)) {
+            code = code.toString();
+            if (code.endsWith("{ [native code] }")) {
+                code = "this." + object.name;
+            }
+            code = classes.Code.createCode(code);
+            // console.log("Converting to function: ", code)
+            code = classes.Code.cutHeadNode(code);
+            // console.log("Converted to function: ", code)
         }
-        code = classes.Code.createCode(code);
-        // console.log("Converting to function: ", code)
-        code = classes.Code.cutHeadNode(code);
-        // console.log("Converted to function: ", code)
+
         super(code, parent, identifier);
         this.actions["Code>Fire"]  =this.opt_execute;
         this.setControls({mouse: { mousedown:{callback: this.onMouseClickListener.bind(this), mesh: this.mesh}}});
@@ -57726,7 +57914,7 @@ require("../core/serialization.js");
 
 
 module.exports = classes;
-},{"../core/serialization.js":9,"./codeobjects.js":10,"./custommesh.js":11,"three-gltf-loader":4}],13:[function(require,module,exports){
+},{"../core/serialization.js":11,"./codeobjects.js":13,"./custommesh.js":14,"three-gltf-loader":4}],16:[function(require,module,exports){
 const clientserver = require('../networking/clientserver.js');
 var classes = require('../development/metaobjects.js');
 var SyntaxHighlighterFactory = require('./syntaxHighlighting.js');
@@ -58308,7 +58496,7 @@ module.exports = {closeTextEditor,
     closeDropdownMessage,
     createMenu:menuManager.createMenu,
     menuManager};
-},{"../development/metaobjects.js":12,"../networking/clientserver.js":16,"./syntaxHighlighting.js":14}],14:[function(require,module,exports){
+},{"../development/metaobjects.js":15,"../networking/clientserver.js":20,"./syntaxHighlighting.js":17}],17:[function(require,module,exports){
 var highlighters = [];
 
 class SyntaxHighlighter {
@@ -58608,35 +58796,22 @@ class SyntaxHighlighterFactory{
 
 }
 module.exports = SyntaxHighlighterFactory
-},{}],15:[function(require,module,exports){
-var THREE = require('three');
-const OrbitControls = require('three-orbit-controls')(THREE);
-window.THREE = THREE;
-window.originalWindowPropertySet = Object.getOwnPropertyNames(window);
+},{}],18:[function(require,module,exports){
+require('../core/setupcontextvariables.js');
 
-const MouseControls = require('./controls.js');
-window.mouseControls = new MouseControls();
-const interfaces = require('./interfaces/interfaces.js')
-window.clientserver = require('./networking/clientserver.js');
-const GlobalDeployer = require('./core/deployers/scriptdeployer.js')
-require("./tools/clientutils.js")
-window.deployer = new GlobalDeployer();
-window.geval = this.execScript || eval;
-window.interfaces = interfaces;
-window.metaobjects = deployer.classes;
-let camera, scene, renderer, camControls, clock;
-
-THREE.Vector3.prototype.getRotated = function(v){
-    var res = new THREE.Vector3(this.x, this.y, this.z);
-    res.applyAxisAngle(new THREE.Vector3( 1, 0, 0 ), v.x);
-    res.applyAxisAngle(new THREE.Vector3( 0, 1, 0 ), v.y);
-    res.applyAxisAngle(new THREE.Vector3( 0, 0, 1 ), v.z);
-    return res;
+function onWindowResize(){
+    window.cameraManager.onWindowResize();
+    renderer.setSize( window.innerWidth, window.innerHeight );
 }
+window.addEventListener( 'resize', onWindowResize, false );
 
-var maxFPS = 60;
-var last_frame_time = new Date();
-var game_loop_timeout = null;
+},{"../core/setupcontextvariables.js":12}],19:[function(require,module,exports){
+
+
+
+
+require('./interfaces/windowmanager.js')
+
 // window.wm = [];
 // var origCall = Function.prototype.call;
 // Function.prototype.call = function (thisArg) {
@@ -58656,182 +58831,8 @@ var game_loop_timeout = null;
 // };
 // Function.prototype = oldProt;
 
-window.addEventListener( 'resize', onWindowResize, false );
 
-init();
-
-function onWindowResize(){
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize( window.innerWidth, window.innerHeight );
-}
-
-window.swapCamera = function swapCamera(){
-    let cameraswitcher = document.getElementById("cameraswitcher");
-    let swap = cameraswitcher.innerText;
-    let new_camera = window.camera;
-    if(swap === "Orthogonal"){
-        interfaces.setInterfaceText("cameraswitcher", "Perspective")
-        new_camera = new THREE.OrthographicCamera( - 10 * window.innerWidth / window.innerHeight, 10*window.innerWidth / window.innerHeight, 10, -10 );
-
-    }else{
-        interfaces.setInterfaceText("cameraswitcher", "Orthogonal")
-        new_camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.0001, 100 );
-    }
-    new_camera.position.copy(window.camera.position);
-    new_camera.rotation.copy(window.camera.rotation);
-    window.camera = new_camera;
-    window.controls.object = window.camera;
-    window.requestAnimationFrame(render);
-
-}
-
-function init() {
-
-    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.0001, 100 );
-    // camera = new THREE.OrthographicCamera( - 10 * window.innerWidth / window.innerHeight, 10*window.innerWidth / window.innerHeight, 10, -10 );
-    camera.position.z = 5;
-    camera.position.y = 5;
-    scene = new THREE.Scene();
-
-    clock = new THREE.Clock();
-
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.setSize( window.innerWidth, window.innerHeight );
-
-
-    // renderer.setAnimationLoop( animation );
-    document.body.appendChild( renderer.domElement );
-    // console.log("added", cube_obj, scene, camera)
-
-    // const geometry = new THREE.PlaneGeometry( 1001, 1001, 1001,1001 );
-    // const wireframematerial = new THREE.MeshBasicMaterial( {color: 0x0A0A0A, side: THREE.DoubleSide, wireframe:true} );
-    // const material = new THREE.MeshBasicMaterial( {color: 0xF9F9F9, side: THREE.DoubleSide} );
-    // const planeframe = new THREE.Mesh( geometry, wireframematerial );
-    // const plane = new THREE.Mesh( geometry, material );
-    // planeframe.rotation.x = Math.PI / 2;
-    // plane.rotation.x = Math.PI / 2;
-    // scene.add( planeframe );
-    // scene.add( plane );
-    // var gridPlane = new THREE.TileGridWireFrame(40,40,"xz");
-    // scene.add( gridPlane );
-
-    // const light = new THREE.AmbientLight( 0xFFFFFF ); // soft white light
-    // scene.add( light );
-
-
-    const spotLight = new THREE.SpotLight( 0xffffff );
-    spotLight.position.set( 0, 5, 0 );
-
-    spotLight.castShadow = true;
-    spotLight.shadow.mapSize.width = 1024;
-    spotLight.shadow.mapSize.height = 1024;
-    spotLight.shadow.camera.near = 500;
-    spotLight.shadow.camera.far = 4000;
-    spotLight.shadow.camera.fov = 30;
-
-    scene.add( spotLight );
-
-    const controls = new OrbitControls( camera, renderer.domElement );
-    controls.addEventListener( 'change', render ); // use if there is no animation loop
-
-    controls.minDistance = 0.1;
-    controls.maxDistance = 10;
-    controls.target.set( 0, 0, - 0.2 );
-
-    window.scene = scene;
-    window.camera = camera;
-    window.controls = controls;
-    window.renderer = renderer;
-
-    controls.update();
-
-    // const camControls = new PointerLockControls( camera, document.body );
-
-    // camControls = new FirstPersonControls(camera);
-    // camControls.lookSpeed = 0.4;
-    // camControls.movementSpeed = 5;
-    // camControls.noFly = true;
-    // camControls.lookVertical = true;
-    // camControls.constrainVertical = true;
-    // camControls.verticalMin = 1.0;
-    // camControls.verticalMax = 2.0;
-    // camControls.lon = -150;
-    // camControls.lat = 120;
-    // camControls.addEventListener( 'change', render );
-    // render();
-
-    // var loader = new GLTFLoader();
-    // window.loader = loader;
-    // loader.load(
-    //     "/models/homeswitch.glb",
-    //     function ( gltf ) {
-    //         console.log("Loaded ", gltf, THREE)
-    //         let group = gltf.scene;
-    //         window.group = group;
-    //         group.scale.x = 0.1
-    //         group.scale.y = 0.1
-    //         group.scale.z = 0.1
-    //         group.rotation.z = Math.PI / 2;
-    //         scene.add( group )
-    //         renderer.render(scene, camera);
-    //     },
-    // );
-
-    deployer.importGrid();
-    // deployer.import3DJSModule('/src/kernel.js')
-    // deployer.import3DJSModule('/src/kernel.js');
-    deployer.import3DJSModule('/src/playground.js');
-    deployer.import3DJSModule('/src/playgroundclass.js',new THREE.Vector3(-2,0,0));
-
-    // window.selfSource = "";
-    // clientserver.httpGet("https://localhost:8000/client.js", function f(data){ window.selfSource = data; });
-    // window.parsedSource = new deployer.classes.NodeCodeWalker(selfSource);
-
-    // import3DJSModule('/src/clientserver.js',new THREE.Vector3(-4,0,0))
-    // import3DJSModule('/src/metaobjects.js',new THREE.Vector3(-8,0,0))
-    // deployer.import3DJSModule('/src/playground.js')
-    // window.tf = tf;
-
-    window.requestAnimationFrame(render);
-    window.onload = function(){
-        window.setupWindowPropertySet = Object.getOwnPropertyNames(window).filter(n => !window.originalWindowPropertySet.includes(n) )
-        window.otherWindowPropertySet = ['getNewProperties', 'dir', 'dirxml', 'profile', 'profileEnd', 'clear', 'table', 'keys', 'values', 'debug', 'undebug', 'monitor', 'unmonitor', 'inspect', 'copy', 'queryObjects', '$_', '$0', '$1', '$2', '$3', '$4', 'getEventListeners', 'getAccessibleName', 'getAccessibleRole', 'monitorEvents', 'unmonitorEvents', '$', '$$', '$x'];
-        window.originalWindowPropertySet = Object.getOwnPropertyNames(window);
-        console.log("window.setupWindowPropertySet",  window.setupWindowPropertySet)
-
-        window.getNewProperties = function(){
-            return Object.getOwnPropertyNames(window).filter(n => ![...originalWindowPropertySet, ...setupWindowPropertySet, ...otherWindowPropertySet].includes(n))
-        }
-    };
-
-
-}
-
-function render() {
-    mouseControls.onRender();
-    var new_time = new Date()
-    let fps = 1000 / (new_time.getTime() - last_frame_time.getTime());
-    if(fps > maxFPS){
-        var minDelay = 1000 / maxFPS;
-        var delayRender = Math.ceil(minDelay - (new_time.getTime() - last_frame_time.getTime()));
-        if(game_loop_timeout === null) game_loop_timeout = setTimeout(renderSync, delayRender);
-    }else{
-        renderSync();
-    }
-}
-function renderSync(){
-    var new_time = new Date()
-    let fps = 1000 / (new_time.getTime() - last_frame_time.getTime());
-    interfaces.setInterfaceText("fpscounter", Math.ceil(fps) + " FPS")
-    last_frame_time = new_time;
-    renderer.render( scene, window.camera );
-    game_loop_timeout = null;
-    requestAnimationFrame(render);
-}
-
-
-},{"./controls.js":7,"./core/deployers/scriptdeployer.js":8,"./interfaces/interfaces.js":13,"./networking/clientserver.js":16,"./tools/clientutils.js":17,"three":6,"three-orbit-controls":5}],16:[function(require,module,exports){
+},{"./interfaces/windowmanager.js":18}],20:[function(require,module,exports){
 var Exported = {
     httpGet: function(theUrl, callback)
     {
@@ -58888,7 +58889,8 @@ var Exported = {
 // export default Exported;
 module.exports = Exported;
 
-},{}],17:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
+const THREE = require("three");
 window.arraySelect = function (array, projection) {
     var results = [];
     for (var i = 0; i < array.length; i++) {
@@ -58904,4 +58906,13 @@ window.arrayWhere =function (array, inclusionTest) {
     }
     return results;
 };
-},{}]},{},[15]);
+
+
+THREE.Vector3.prototype.getRotated = function(v){
+    var res = new THREE.Vector3(this.x, this.y, this.z);
+    res.applyAxisAngle(new THREE.Vector3( 1, 0, 0 ), v.x);
+    res.applyAxisAngle(new THREE.Vector3( 0, 1, 0 ), v.y);
+    res.applyAxisAngle(new THREE.Vector3( 0, 0, 1 ), v.z);
+    return res;
+}
+},{"three":6}]},{},[19]);

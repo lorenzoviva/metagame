@@ -102,7 +102,7 @@ class Object3D{
         return this.destroyer;
     }
     destroyer(){
-        //console.log("Destroy: ", this)
+        console.log("Destroy: ", this)
         if(this.parent === scene){
             this.parent.remove(this.mesh);
         }else{
@@ -242,6 +242,9 @@ class Object3D{
         }
     }
     objectSetup(){
+        if(deployer.recast(this)){
+            return this.destroyer();
+        }
         // if (!this.mesh){
         this.setMesh(this.draw());
         // }
@@ -780,8 +783,10 @@ class Code3D extends Object3D{
     }
 
     objectSetup() {
-
         // super.objectSetup();
+        if(deployer.recast(this)){
+            return this.destroyer();
+        }
         if(typeof this.object !== "object" || !(this.object instanceof classes.Code) ){
             this.object = classes.Code.createCode(this.object)
         }
@@ -1055,14 +1060,18 @@ class Code3D extends Object3D{
 }
 class Function3D extends Code3D{
     constructor(object, parent=scene, identifier=""){
-        let code = object.toString();
-        if (code.endsWith("{ [native code] }")){
-            code = "this." + object.name;
+        let code = object;
+        if(!(object instanceof classes.Code)) {
+            code = code.toString();
+            if (code.endsWith("{ [native code] }")) {
+                code = "this." + object.name;
+            }
+            code = classes.Code.createCode(code);
+            // console.log("Converting to function: ", code)
+            code = classes.Code.cutHeadNode(code);
+            // console.log("Converted to function: ", code)
         }
-        code = classes.Code.createCode(code);
-        // console.log("Converting to function: ", code)
-        code = classes.Code.cutHeadNode(code);
-        // console.log("Converted to function: ", code)
+
         super(code, parent, identifier);
         this.actions["Code>Fire"]  =this.opt_execute;
         this.setControls({mouse: { mousedown:{callback: this.onMouseClickListener.bind(this), mesh: this.mesh}}});
